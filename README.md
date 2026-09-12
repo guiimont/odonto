@@ -14,7 +14,7 @@ Sistema odontológico B2B construído a partir da engenharia reversa funcional d
 
 A tela inicial implementa uma visão executiva premium, com:
 
-- ocupação real da agenda e capacidade ociosa;
+- indicador de ocupação da agenda e capacidade ociosa;
 - produção, recebimento líquido e inadimplência sem misturar conceitos;
 - funil financeiro do produzido ao caixa disponível;
 - fila de atenção para esperas, orçamentos e repasses;
@@ -29,7 +29,17 @@ A Agenda diária por profissional inclui:
 - resumo financeiro;
 - painel lateral sem abandonar a agenda.
 
-Os dados exibidos nesta fase são fixtures sintéticas. Nenhum dado dos pacientes auditados foi incluído.
+## Acesso e prontuário
+
+- login e criação de conta com Supabase Auth;
+- provisionamento automático da primeira clínica somente após confirmação do e-mail;
+- onboarding seguro para contas existentes sem clínica;
+- contexto de usuário e clínica resolvido no servidor;
+- busca e cadastro real de pacientes;
+- ficha unificada com alertas médicos, anamnese, odontograma FDI, evolução clínica, planos de tratamento e parcelas;
+- encerramento de sessão e proteção de rotas no Proxy.
+
+Os dados demonstrativos da Agenda e do dashboard são fixtures sintéticas. A base de pacientes e a ficha clínica já consultam o Supabase real. Nenhum dado dos pacientes auditados foi incluído.
 
 ## Executar
 
@@ -50,7 +60,7 @@ O projeto Supabase `Odonto` está ativo na organização Strategic Data Mind. O 
 - histórico reproduzível: `supabase/migrations/`;
 - tipos gerados do banco: `src/types/database.ts`.
 
-Os números exibidos no dashboard ainda são fixtures sintéticas; nenhum dado dos pacientes auditados foi incluído. A próxima etapa substituirá as fixtures por métricas agregadas e protegidas por RLS.
+Os números exibidos no dashboard ainda são fixtures sintéticas. A próxima etapa substituirá essas fixtures por métricas agregadas e protegidas por RLS.
 
 ## Stack
 

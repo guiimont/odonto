@@ -1,0 +1,22 @@
+import Link from "next/link";
+import { ArrowLeft, Info, Save } from "lucide-react";
+import { redirect } from "next/navigation";
+import { getClinicContext } from "@/lib/clinic-context";
+import { WorkspaceShell } from "@/components/workspace-shell";
+import { createPatient } from "@/app/patients/actions";
+
+const errors: Record<string, string> = {
+  invalid_name: "Informe o nome completo do paciente.",
+  invalid_cpf: "O CPF deve conter 11 dígitos.",
+  invalid_phone: "Revise o telefone informado.",
+  duplicate_cpf: "Já existe um paciente ativo com este CPF.",
+  save_failed: "Não foi possível salvar o cadastro. Revise os dados e tente novamente.",
+};
+
+export default async function NewPatientPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const context = await getClinicContext();
+  if (!context) redirect("/onboarding");
+  const errorCode = (await searchParams).error ?? "";
+
+  return <WorkspaceShell clinicName={context.clinic.trade_name} userName={context.profile.full_name}><main><header className="flex min-h-[68px] items-center border-b border-[#dce2df] bg-white px-4 sm:px-6"><Link href="/patients" className="flex items-center gap-2 text-sm font-semibold text-[#52605b]"><ArrowLeft size={17} />Voltar para pacientes</Link></header><section className="mx-auto max-w-4xl p-4 sm:p-6 lg:p-8"><div><p className="text-xs font-semibold uppercase tracking-[.14em] text-[#176b55]">Novo prontuário</p><h1 className="mt-2 text-3xl font-semibold tracking-[-.045em]">Cadastrar paciente</h1><p className="mt-2 text-sm text-[#6f7b77]">Comece pelo essencial. Anamnese e informações clínicas entram depois, dentro da ficha.</p></div>{errors[errorCode] ? <div className="mt-5 flex gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700"><Info size={18} className="shrink-0" />{errors[errorCode]}</div> : null}<form action={createPatient} className="mt-6 overflow-hidden rounded-2xl border border-[#dce2df] bg-white"><div className="border-b border-[#e7ebe9] px-5 py-4 sm:px-7"><h2 className="text-sm font-semibold">Identificação e contato</h2><p className="mt-1 text-xs text-[#7a8581]">Campos marcados com * são obrigatórios.</p></div><div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-7"><label className="block sm:col-span-2"><span className="mb-1.5 block text-xs font-semibold text-[#52605b]">Nome completo *</span><input name="full_name" required minLength={2} autoComplete="name" className="auth-input" /></label><label className="block"><span className="mb-1.5 block text-xs font-semibold text-[#52605b]">Nome social</span><input name="social_name" className="auth-input" /></label><label className="block"><span className="mb-1.5 block text-xs font-semibold text-[#52605b]">Data de nascimento</span><input name="birth_date" type="date" className="auth-input" /></label><label className="block"><span className="mb-1.5 block text-xs font-semibold text-[#52605b]">CPF</span><input name="cpf" inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" className="auth-input" /></label><label className="block"><span className="mb-1.5 block text-xs font-semibold text-[#52605b]">E-mail</span><input name="email" type="email" autoComplete="email" className="auth-input" /></label><label className="block"><span className="mb-1.5 block text-xs font-semibold text-[#52605b]">Telefone</span><input name="phone" type="tel" autoComplete="tel" placeholder="(11) 99999-9999" className="auth-input" /></label><label className="block"><span className="mb-1.5 block text-xs font-semibold text-[#52605b]">WhatsApp</span><input name="whatsapp" type="tel" placeholder="(11) 99999-9999" className="auth-input" /></label><label className="block sm:col-span-2"><span className="mb-1.5 block text-xs font-semibold text-[#52605b]">Observações cadastrais</span><textarea name="notes" rows={4} className="w-full resize-y rounded-xl border border-[#dce2df] bg-[#f8faf9] p-3.5 text-sm outline-none focus:border-[#176b55] focus:bg-white focus:ring-4 focus:ring-[#176b55]/8" /></label></div><div className="flex justify-end gap-3 border-t border-[#e7ebe9] bg-[#fafbfa] px-5 py-4 sm:px-7"><Link href="/patients" className="flex h-11 items-center rounded-xl border border-[#dce2df] bg-white px-4 text-sm font-semibold text-[#61706b]">Cancelar</Link><button className="flex h-11 items-center gap-2 rounded-xl bg-[#176b55] px-5 text-sm font-semibold text-white hover:bg-[#0f513f]"><Save size={17} />Salvar paciente</button></div></form></section></main></WorkspaceShell>;
+}

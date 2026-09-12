@@ -1,12 +1,12 @@
 "use client";
 
 import {
-  Bell, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, CircleDollarSign,
-  Clock3, FileText, LayoutDashboard, Menu, MessageCircle, MoreHorizontal, Plus,
-  Search, Settings, ShieldAlert, Stethoscope, Users, X,
+  Bell, ChevronLeft, ChevronRight, CircleDollarSign,
+  Clock3, Menu, MessageCircle, MoreHorizontal, Plus,
+  Search, ShieldAlert, Stethoscope, X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import { WorkspaceShell } from "@/components/workspace-shell";
 
 type AppointmentStatus = "Confirmado" | "Em espera" | "Em atendimento" | "Agendado";
 type Tone = "green" | "amber" | "blue" | "slate";
@@ -34,12 +34,6 @@ const professionals = [
   { name: "Dra. Camila", role: "Ortodontia", initials: "CA", color: "bg-violet-700" },
 ] as const;
 
-const nav = [
-  { label: "Visão geral", icon: LayoutDashboard, href: "/" }, { label: "Agenda", icon: CalendarDays, href: "/agenda", active: true },
-  { label: "Pacientes", icon: Users, href: "#" }, { label: "Clínica", icon: Stethoscope, href: "#" },
-  { label: "Financeiro", icon: CircleDollarSign, href: "#" }, { label: "Relatórios", icon: FileText, href: "#" },
-];
-
 const toneClasses: Record<Tone, string> = {
   green: "border-emerald-200 bg-emerald-50 text-emerald-950",
   amber: "border-amber-200 bg-amber-50 text-amber-950",
@@ -57,7 +51,7 @@ function AppointmentCard({ appointment, onSelect }: { appointment: Appointment; 
   );
 }
 
-export function AgendaWorkspace() {
+export function AgendaWorkspace({ clinicName, userName }: { clinicName: string; userName: string }) {
   const [selected, setSelected] = useState<Appointment | null>(appointments[3]);
   const [query, setQuery] = useState("");
   const [view, setView] = useState<"Dia" | "Semana">("Dia");
@@ -69,15 +63,7 @@ export function AgendaWorkspace() {
   const currentStatus = selected ? statuses[selected.id] ?? selected.status : null;
 
   return (
-    <div className="min-h-screen bg-[#f3f5f4] text-[#17201d] lg:flex">
-      <aside className="hidden min-h-screen w-[232px] shrink-0 flex-col bg-[#111a17] px-4 py-5 text-white lg:flex">
-        <div className="flex h-10 items-center gap-3 px-2"><div className="grid h-9 w-9 place-items-center rounded-xl bg-[#d8f66a] text-sm font-black text-[#17201d]">O</div><div><div className="text-[17px] font-semibold tracking-tight">Odonto</div><div className="text-[11px] text-white/45">Clínica integrada</div></div></div>
-        <nav className="mt-9 space-y-1" aria-label="Navegação principal">
-          {nav.map((item) => <Link href={item.href} key={item.label} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${item.active ? "bg-white/11 font-medium text-white" : "text-white/58 hover:bg-white/6 hover:text-white"}`}><item.icon size={18} strokeWidth={1.8} />{item.label}</Link>)}
-        </nav>
-        <div className="mt-auto space-y-1"><button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-white/58 hover:bg-white/6 hover:text-white"><Settings size={18} />Configurações</button><div className="mt-4 flex items-center gap-3 border-t border-white/10 px-2 pt-5"><div className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-xs font-semibold">GM</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">Guilherme</p><p className="truncate text-[11px] text-white/42">Administrador</p></div><ChevronDown size={15} className="text-white/40" /></div></div>
-      </aside>
-
+    <WorkspaceShell clinicName={clinicName} userName={userName}>
       <main className="min-w-0 flex-1">
         <header className="flex h-[68px] items-center gap-3 border-b border-[#dce2df] bg-white px-4 sm:px-6"><button className="rounded-lg p-2 text-slate-600 lg:hidden" aria-label="Abrir menu"><Menu size={21} /></button><div className="relative hidden max-w-[380px] flex-1 sm:block"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar paciente ou procedimento" className="h-10 w-full rounded-xl border border-[#dce2df] bg-[#f7f8f8] pl-10 pr-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-600/8" /></div><div className="ml-auto flex items-center gap-2"><button className="relative grid h-10 w-10 place-items-center rounded-xl border border-[#dce2df] bg-white text-slate-600 hover:bg-slate-50" aria-label="Notificações"><Bell size={18} /><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500" /></button><button className="flex h-10 items-center gap-2 rounded-xl bg-[#176b55] px-3.5 text-sm font-semibold text-white shadow-sm hover:bg-[#0f513f]"><Plus size={17} /><span className="hidden sm:inline">Novo agendamento</span></button></div></header>
 
@@ -91,6 +77,6 @@ export function AgendaWorkspace() {
           </div>
         </section>
       </main>
-    </div>
+    </WorkspaceShell>
   );
 }

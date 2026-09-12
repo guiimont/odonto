@@ -27,10 +27,27 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, sans-serif;
 }
-button, input { font: inherit; }
+button, input, textarea, select { font: inherit; }
 button { cursor: pointer; }
 ::selection { background: #bfe8da; color: #0d392e; }
 .scrollbar-thin { scrollbar-color: #c8d1cd transparent; scrollbar-width: thin; }
 .schedule-grid {
   background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 71px, #e7ebe9 72px);
+}
+.auth-input {
+  width: 100%;
+  height: 46px;
+  border: 1px solid #dce2df;
+  border-radius: 12px;
+  background: #f8faf9;
+  padding: 0 14px;
+  color: #17201d;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+.auth-input:focus {
+  border-color: #176b55;
+  background: white;
+  box-shadow: 0 0 0 4px rgba(23, 107, 85, 0.09);
 }
