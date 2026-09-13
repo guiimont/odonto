@@ -34,8 +34,9 @@ export default async function Home() {
   const nextMonthIso = localDateTimeToIso(nextMonth, "00:00", timeZone);
   const chartStartIso = localDateTimeToIso(chartStart, "00:00", timeZone);
 
-  const [patientsResult, profilesResult, monthAppointmentsResult, upcomingResult, transactionsResult, overdueResult, paidResult, settledResult, pendingBudgetsResult] = await Promise.all([
+  const [patientsResult, patientCountResult, profilesResult, monthAppointmentsResult, upcomingResult, transactionsResult, overdueResult, paidResult, settledResult, pendingBudgetsResult] = await Promise.all([
     context.supabase.from("patients").select("id, public_id, full_name, social_name").eq("clinic_id", context.clinic.id).is("deleted_at", null),
+    context.supabase.from("patients").select("id", { count: "exact", head: true }).eq("clinic_id", context.clinic.id).is("deleted_at", null),
     context.supabase.from("profiles").select("id, full_name").is("deleted_at", null),
     context.supabase.from("appointments").select("status").eq("clinic_id", context.clinic.id).gte("starts_at", monthStartIso).lt("starts_at", nextMonthIso).is("deleted_at", null),
     context.supabase.from("appointments").select("public_id, patient_id, professional_profile_id, starts_at, status, observations").eq("clinic_id", context.clinic.id).gte("starts_at", todayStart).lt("starts_at", tomorrowStart).in("status", ["scheduled", "confirmed", "waiting_room", "in_service"]).is("deleted_at", null).order("starts_at").limit(6),
@@ -68,7 +69,7 @@ export default async function Home() {
   });
 
   const data: DashboardData = {
-    patientCount: patients.length,
+    patientCount: patientCountResult.count ?? patients.length,
     appointmentCount: monthAppointments.length,
     completedCount: monthAppointments.filter((item) => item.status === "completed").length,
     noShowCount: monthAppointments.filter((item) => item.status === "no_show").length,
