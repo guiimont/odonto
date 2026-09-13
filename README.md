@@ -40,7 +40,7 @@ A Agenda diária por profissional inclui:
 - ficha unificada com alertas médicos, anamnese, odontograma FDI, evolução clínica, planos de tratamento e parcelas;
 - encerramento de sessão e proteção de rotas no Proxy.
 
-Somente os indicadores do dashboard continuam como fixtures sintéticas. Agenda, base de pacientes e ficha clínica já consultam o Supabase real. Nenhum dado dos pacientes auditados foi incluído.
+Dashboard, agenda, base de pacientes e ficha clínica consultam o Supabase real com isolamento por clínica. Nenhum dado dos pacientes auditados foi incluído no código-fonte.
 
 ## Executar
 
@@ -61,7 +61,7 @@ O projeto Supabase `Odonto` está ativo na organização Strategic Data Mind. O 
 - histórico reproduzível: `supabase/migrations/`;
 - tipos gerados do banco: `src/types/database.ts`.
 
-Os números exibidos no dashboard ainda são fixtures sintéticas. A próxima etapa substituirá essas fixtures por métricas agregadas e protegidas por RLS.
+O dashboard calcula produção, liquidação, inadimplência, comparecimento, pendências e agenda do dia diretamente dos dados protegidos por RLS. Estados vazios são apresentados sem inventar números.
 
 ## Stack
 

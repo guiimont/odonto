@@ -11,7 +11,7 @@ const appointmentErrors: Record<string, string> = {
   save_failed: "Não foi possível salvar o agendamento. Tente novamente.",
 };
 
-export default async function AgendaPage({ searchParams }: { searchParams: Promise<{ date?: string; error?: string; created?: string }> }) {
+export default async function AgendaPage({ searchParams }: { searchParams: Promise<{ date?: string; error?: string; created?: string; patient?: string; new?: string }> }) {
   const context = await getClinicContext();
   if (!context) redirect("/onboarding");
   const params = await searchParams;
@@ -30,6 +30,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
   ]);
 
   const patients = patientsResult.data ?? [];
+  const initialPatientPublicId = patients.some((patient) => patient.public_id === params.patient) ? params.patient : undefined;
   const profiles = profilesResult.data ?? [];
   const memberships = membershipsResult.data ?? [];
   const patientById = new Map(patients.map((patient) => [patient.id, patient]));
@@ -49,5 +50,5 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
     return [{ publicId: appointment.public_id, patientPublicId: patient.public_id, patientName: patient.social_name || patient.full_name, patientPhone: patient.whatsapp_e164 || patient.phone_e164, professionalId: professional.id, professionalName: professional.full_name, chairId: appointment.chair_id, startsAt: appointment.starts_at, endsAt: appointment.ends_at, startTime: clockInTimeZone(appointment.starts_at, context.clinic.timezone), endTime: clockInTimeZone(appointment.ends_at, context.clinic.timezone), durationMinutes: appointment.duration_minutes ?? Math.round((new Date(appointment.ends_at).getTime() - new Date(appointment.starts_at).getTime()) / 60_000), status: appointment.status, observations: appointment.observations, alerts: alertsByPatient.get(patient.id) ?? [] }];
   });
 
-  return <AgendaWorkspace clinicName={context.clinic.trade_name} userName={context.profile.full_name} selectedDate={selectedDate} today={today} appointments={appointments} professionals={professionals} patients={patients.map((patient) => ({ publicId: patient.public_id, name: patient.social_name || patient.full_name }))} chairs={chairsResult.data ?? []} message={params.error ? appointmentErrors[params.error] : params.created ? "Agendamento criado com sucesso." : null} messageTone={params.error ? "error" : "success"} />;
+  return <AgendaWorkspace clinicName={context.clinic.trade_name} userName={context.profile.full_name} selectedDate={selectedDate} today={today} appointments={appointments} professionals={professionals} patients={patients.map((patient) => ({ publicId: patient.public_id, name: patient.social_name || patient.full_name }))} chairs={chairsResult.data ?? []} initialPatientPublicId={initialPatientPublicId} openNew={params.new === "1" && patients.length > 0} message={params.error ? appointmentErrors[params.error] : params.created ? "Agendamento criado com sucesso." : null} messageTone={params.error ? "error" : "success"} />;
 }
