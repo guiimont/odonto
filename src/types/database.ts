@@ -1659,6 +1659,78 @@ export type Database = {
           },
         ]
       }
+      patient_files: {
+        Row: {
+          category: string
+          clinic_id: number
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          id: number
+          legacy_id: string | null
+          mime_type: string
+          original_name: string
+          patient_id: number
+          public_id: string
+          size_bytes: number
+          source_system: string | null
+          storage_path: string
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          category?: string
+          clinic_id: number
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: never
+          legacy_id?: string | null
+          mime_type: string
+          original_name: string
+          patient_id: number
+          public_id?: string
+          size_bytes: number
+          source_system?: string | null
+          storage_path: string
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          category?: string
+          clinic_id?: number
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: never
+          legacy_id?: string | null
+          mime_type?: string
+          original_name?: string
+          patient_id?: number
+          public_id?: string
+          size_bytes?: number
+          source_system?: string | null
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_files_clinic_id_patient_id_fkey"
+            columns: ["clinic_id", "patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["clinic_id", "id"]
+          },
+          {
+            foreignKeyName: "patient_files_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_anamneses: {
         Row: {
           answered_by_patient: boolean
@@ -2383,7 +2455,14 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      submit_patient_anamnesis: {
+        Args: {
+          p_answered_by_patient?: boolean
+          p_answers: Json
+          p_patient_public_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       anamnesis_answer_selection: "yes" | "no" | "unknown"
@@ -2705,4 +2784,3 @@ export const Constants = {
     },
   },
 } as const
-
