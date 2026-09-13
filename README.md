@@ -22,12 +22,13 @@ A tela inicial implementa uma visão executiva premium, com:
 
 A Agenda diária por profissional inclui:
 
-- pesquisa por paciente ou procedimento;
-- horários e duração;
-- estados do atendimento;
+- leitura real dos atendimentos no Supabase por data e fuso da clínica;
+- criação de atendimento com paciente, profissional, consultório, horário e duração;
+- busca por paciente, profissional ou motivo;
+- transições reais de status protegidas no PostgreSQL;
+- bloqueio de sobreposição para profissional e consultório;
 - alerta médico em contexto;
-- resumo financeiro;
-- painel lateral sem abandonar a agenda.
+- acesso direto ao prontuário pelo painel lateral.
 
 ## Acesso e prontuário
 
@@ -39,7 +40,7 @@ A Agenda diária por profissional inclui:
 - ficha unificada com alertas médicos, anamnese, odontograma FDI, evolução clínica, planos de tratamento e parcelas;
 - encerramento de sessão e proteção de rotas no Proxy.
 
-Os dados demonstrativos da Agenda e do dashboard são fixtures sintéticas. A base de pacientes e a ficha clínica já consultam o Supabase real. Nenhum dado dos pacientes auditados foi incluído.
+Somente os indicadores do dashboard continuam como fixtures sintéticas. Agenda, base de pacientes e ficha clínica já consultam o Supabase real. Nenhum dado dos pacientes auditados foi incluído.
 
 ## Executar
 

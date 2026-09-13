@@ -19,7 +19,7 @@ export async function getClinicContext() {
   if (!membership) return null;
 
   const [{ data: clinic }, { data: profile }] = await Promise.all([
-    supabase.from("clinics").select("id, public_id, trade_name").eq("id", membership.clinic_id).single(),
+    supabase.from("clinics").select("id, public_id, trade_name, timezone").eq("id", membership.clinic_id).single(),
     supabase.from("profiles").select("id, full_name, email").eq("id", userId).single(),
   ]);
 

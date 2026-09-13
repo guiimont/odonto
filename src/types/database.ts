@@ -197,6 +197,9 @@ export type Database = {
       }
       appointments: {
         Row: {
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           chair_id: number | null
           clinic_id: number
           created_at: string
@@ -216,9 +219,14 @@ export type Database = {
           source_system: string | null
           starts_at: string
           status: Database["public"]["Enums"]["appointment_status"]
+          status_changed_at: string
+          status_changed_by: string | null
           updated_at: string
         }
         Insert: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           chair_id?: number | null
           clinic_id: number
           created_at?: string
@@ -238,9 +246,14 @@ export type Database = {
           source_system?: string | null
           starts_at: string
           status?: Database["public"]["Enums"]["appointment_status"]
+          status_changed_at?: string
+          status_changed_by?: string | null
           updated_at?: string
         }
         Update: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           chair_id?: number | null
           clinic_id?: number
           created_at?: string
@@ -260,9 +273,18 @@ export type Database = {
           source_system?: string | null
           starts_at?: string
           status?: Database["public"]["Enums"]["appointment_status"]
+          status_changed_at?: string
+          status_changed_by?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "appointments_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "appointments_clinic_id_chair_id_fkey"
             columns: ["clinic_id", "chair_id"]
@@ -287,6 +309,13 @@ export type Database = {
           {
             foreignKeyName: "appointments_professional_profile_id_fkey"
             columns: ["professional_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_status_changed_by_fkey"
+            columns: ["status_changed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
