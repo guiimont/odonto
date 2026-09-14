@@ -393,6 +393,7 @@ export type Database = {
           professional_profile_id: string | null
           public_id: string
           quantity: number
+          source_odontogram_entry_id: number | null
           source_payload: Json
           source_system: string | null
           treatment_catalog_id: number | null
@@ -420,6 +421,7 @@ export type Database = {
           professional_profile_id?: string | null
           public_id?: string
           quantity?: number
+          source_odontogram_entry_id?: number | null
           source_payload?: Json
           source_system?: string | null
           treatment_catalog_id?: number | null
@@ -447,6 +449,7 @@ export type Database = {
           professional_profile_id?: string | null
           public_id?: string
           quantity?: number
+          source_odontogram_entry_id?: number | null
           source_payload?: Json
           source_system?: string | null
           treatment_catalog_id?: number | null
@@ -467,6 +470,13 @@ export type Database = {
             columns: ["clinic_id", "dental_plan_id"]
             isOneToOne: false
             referencedRelation: "dental_plans"
+            referencedColumns: ["clinic_id", "id"]
+          },
+          {
+            foreignKeyName: "budget_items_clinic_id_source_odontogram_entry_id_fkey"
+            columns: ["clinic_id", "source_odontogram_entry_id"]
+            isOneToOne: false
+            referencedRelation: "odontogram_entries"
             referencedColumns: ["clinic_id", "id"]
           },
           {
@@ -1659,78 +1669,6 @@ export type Database = {
           },
         ]
       }
-      patient_files: {
-        Row: {
-          category: string
-          clinic_id: number
-          created_at: string
-          deleted_at: string | null
-          description: string | null
-          id: number
-          legacy_id: string | null
-          mime_type: string
-          original_name: string
-          patient_id: number
-          public_id: string
-          size_bytes: number
-          source_system: string | null
-          storage_path: string
-          updated_at: string
-          uploaded_by: string
-        }
-        Insert: {
-          category?: string
-          clinic_id: number
-          created_at?: string
-          deleted_at?: string | null
-          description?: string | null
-          id?: never
-          legacy_id?: string | null
-          mime_type: string
-          original_name: string
-          patient_id: number
-          public_id?: string
-          size_bytes: number
-          source_system?: string | null
-          storage_path: string
-          updated_at?: string
-          uploaded_by: string
-        }
-        Update: {
-          category?: string
-          clinic_id?: number
-          created_at?: string
-          deleted_at?: string | null
-          description?: string | null
-          id?: never
-          legacy_id?: string | null
-          mime_type?: string
-          original_name?: string
-          patient_id?: number
-          public_id?: string
-          size_bytes?: number
-          source_system?: string | null
-          storage_path?: string
-          updated_at?: string
-          uploaded_by?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "patient_files_clinic_id_patient_id_fkey"
-            columns: ["clinic_id", "patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["clinic_id", "id"]
-          },
-          {
-            foreignKeyName: "patient_files_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       patient_anamneses: {
         Row: {
           answered_by_patient: boolean
@@ -1807,6 +1745,78 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "anamnesis_templates"
             referencedColumns: ["clinic_id", "id"]
+          },
+        ]
+      }
+      patient_files: {
+        Row: {
+          category: string
+          clinic_id: number
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          id: number
+          legacy_id: string | null
+          mime_type: string
+          original_name: string
+          patient_id: number
+          public_id: string
+          size_bytes: number
+          source_system: string | null
+          storage_path: string
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          category?: string
+          clinic_id: number
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: never
+          legacy_id?: string | null
+          mime_type: string
+          original_name: string
+          patient_id: number
+          public_id?: string
+          size_bytes: number
+          source_system?: string | null
+          storage_path: string
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          category?: string
+          clinic_id?: number
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: never
+          legacy_id?: string | null
+          mime_type?: string
+          original_name?: string
+          patient_id?: number
+          public_id?: string
+          size_bytes?: number
+          source_system?: string | null
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_files_clinic_id_patient_id_fkey"
+            columns: ["clinic_id", "patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["clinic_id", "id"]
+          },
+          {
+            foreignKeyName: "patient_files_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }

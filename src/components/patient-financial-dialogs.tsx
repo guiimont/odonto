@@ -9,7 +9,9 @@ type CatalogItem = { public_id: string; name: string; base_price: number; segmen
 type PaymentMethod = { public_id: string; display_name: string; kind: string };
 type Installment = { public_id: string; amount: number; paid_amount: number; sequence_number: number; total_installments: number };
 type Budget = { public_id: string; description: string; total_amount: number; entry_amount: number; remaining_installments_count: number };
-type BudgetLine = { id: string; catalog_public_id: string | null; name: string; quantity: number; unit_price: number; tooth_code: string; surface: string };
+type ToothSet = "permanent" | "deciduous";
+type BudgetSeed = { sourcePublicId: string; description: string; toothCode: number; toothSet: ToothSet; surfaces: string[] };
+type BudgetLine = { id: string; catalog_public_id: string | null; source_odontogram_public_id: string | null; name: string; quantity: number; unit_price: number; tooth_code: string; tooth_set: ToothSet; surfaces: string[] };
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -26,20 +28,36 @@ function Modal({ publicId, eyebrow, title, icon: Icon, children }: { publicId: s
   </div>;
 }
 
-function newLine(): BudgetLine {
-  return { id: crypto.randomUUID(), catalog_public_id: null, name: "", quantity: 1, unit_price: 0, tooth_code: "", surface: "" };
+function newLine(id = crypto.randomUUID()): BudgetLine {
+  return { id, catalog_public_id: null, source_odontogram_public_id: null, name: "", quantity: 1, unit_price: 0, tooth_code: "", tooth_set: "permanent", surfaces: [] };
 }
 
-export function PatientFinancialDialogs({ publicId, panel, catalog, paymentMethods, installment, budget, today }: {
+function seededLine(seed: BudgetSeed, catalog: CatalogItem[]): BudgetLine {
+  const matchingCatalog = catalog.find((item) => item.name.trim().toLocaleLowerCase("pt-BR") === seed.description.trim().toLocaleLowerCase("pt-BR"));
+  return {
+    id: "clinical-source",
+    catalog_public_id: matchingCatalog?.public_id ?? null,
+    source_odontogram_public_id: seed.sourcePublicId,
+    name: matchingCatalog?.name ?? seed.description,
+    quantity: 1,
+    unit_price: Number(matchingCatalog?.base_price ?? 0),
+    tooth_code: String(seed.toothCode),
+    tooth_set: seed.toothSet,
+    surfaces: seed.surfaces,
+  };
+}
+
+export function PatientFinancialDialogs({ publicId, panel, catalog, paymentMethods, installment, budget, budgetSeed, today }: {
   publicId: string;
   panel?: string;
   catalog: CatalogItem[];
   paymentMethods: PaymentMethod[];
   installment: Installment | null;
   budget: Budget | null;
+  budgetSeed: BudgetSeed | null;
   today: string;
 }) {
-  const [lines, setLines] = useState<BudgetLine[]>(() => [newLine()]);
+  const [lines, setLines] = useState<BudgetLine[]>(() => [budgetSeed ? seededLine(budgetSeed, catalog) : newLine("initial-line")]);
   const [discountType, setDiscountType] = useState<"fixed_amount" | "percentage">("fixed_amount");
   const [discountValue, setDiscountValue] = useState(0);
   const [entryAmount, setEntryAmount] = useState(0);
@@ -53,7 +71,9 @@ export function PatientFinancialDialogs({ publicId, panel, catalog, paymentMetho
     quantity: Number(line.quantity),
     unit_price: Number(line.unit_price),
     tooth_code: line.tooth_code ? Number(line.tooth_code) : null,
-    surfaces: line.surface ? [line.surface] : [],
+    tooth_set: line.tooth_set,
+    surfaces: line.surfaces,
+    source_odontogram_public_id: line.source_odontogram_public_id,
   })));
 
   function updateLine(id: string, patch: Partial<BudgetLine>) {
@@ -67,18 +87,20 @@ export function PatientFinancialDialogs({ publicId, panel, catalog, paymentMetho
         <input type="hidden" name="items" value={serializedLines} />
         <div className="max-h-[70vh] overflow-y-auto p-5 sm:p-7">
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block sm:col-span-2"><span className="mb-1.5 block text-xs font-semibold text-[#52605b]">Identificação do plano *</span><input name="description" required minLength={2} maxLength={200} placeholder="Ex.: Reabilitação superior — fase 1" className="auth-input" /></label>
+            <label className="block sm:col-span-2"><span className="mb-1.5 block text-xs font-semibold text-[#52605b]">Identificação do plano *</span><input name="description" required minLength={2} maxLength={200} defaultValue={budgetSeed ? `Plano de tratamento — dente ${budgetSeed.toothCode}` : ""} placeholder="Ex.: Reabilitação superior — fase 1" className="auth-input" /></label>
           </div>
+          {budgetSeed ? <div className="mt-4 flex items-start gap-3 rounded-2xl border border-[#cfe1d9] bg-[#edf6f2] p-4"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#176b55] text-xs font-black text-white">{budgetSeed.toothCode}</span><div><p className="text-xs font-bold text-[#145d4b]">Procedimento importado do odontograma</p><p className="mt-1 text-[11px] leading-5 text-[#60716a]">Dente, dentição, faces e descrição clínica foram preservados. Selecione o procedimento do catálogo para aplicar o valor padrão.</p></div></div> : null}
           <div className="mt-6 flex items-center justify-between"><div><p className="text-sm font-semibold">Procedimentos</p><p className="mt-1 text-xs text-[#7a8581]">O nome e o preço ficam preservados como fotografia histórica.</p></div><button type="button" onClick={() => setLines((current) => [...current, newLine()])} className="flex h-9 items-center gap-2 rounded-xl border border-[#dce2df] px-3 text-xs font-semibold"><Plus size={14} />Adicionar</button></div>
           <div className="mt-3 space-y-3">{lines.map((line, index) => <div key={line.id} className="rounded-2xl border border-[#dce2df] bg-[#fafbfa] p-4">
             <div className="flex items-center justify-between"><p className="text-xs font-bold uppercase tracking-[.12em] text-[#71807b]">Item {index + 1}</p>{lines.length > 1 ? <button type="button" onClick={() => setLines((current) => current.filter((item) => item.id !== line.id))} className="grid h-8 w-8 place-items-center rounded-lg text-rose-600 hover:bg-rose-50" aria-label={`Remover item ${index + 1}`}><Trash2 size={15} /></button> : null}</div>
             <div className="mt-3 grid gap-3 md:grid-cols-12">
               <label className="md:col-span-5"><span className="mb-1 block text-[11px] font-semibold text-[#61706b]">Procedimento *</span><select value={line.catalog_public_id ?? ""} onChange={(event) => { const selected = catalog.find((item) => item.public_id === event.target.value); updateLine(line.id, selected ? { catalog_public_id: selected.public_id, name: selected.name, unit_price: Number(selected.base_price) } : { catalog_public_id: null }); }} className="auth-input"><option value="">Personalizado</option>{catalog.map((item) => <option key={item.public_id} value={item.public_id}>{item.name}</option>)}</select></label>
               <label className="md:col-span-7"><span className="mb-1 block text-[11px] font-semibold text-[#61706b]">Descrição *</span><input required minLength={2} maxLength={240} value={line.name} onChange={(event) => updateLine(line.id, { name: event.target.value })} className="auth-input" /></label>
-              <label className="md:col-span-2"><span className="mb-1 block text-[11px] font-semibold text-[#61706b]">Qtd.</span><input type="number" min="0.01" max="100" step="0.01" value={line.quantity} onChange={(event) => updateLine(line.id, { quantity: Number(event.target.value) })} className="auth-input" /></label>
-              <label className="md:col-span-3"><span className="mb-1 block text-[11px] font-semibold text-[#61706b]">Valor unitário</span><input type="number" min="0" step="0.01" value={line.unit_price} onChange={(event) => updateLine(line.id, { unit_price: Number(event.target.value) })} className="auth-input" /></label>
-              <label className="md:col-span-2"><span className="mb-1 block text-[11px] font-semibold text-[#61706b]">Dente FDI</span><input inputMode="numeric" minLength={2} maxLength={2} placeholder="16" value={line.tooth_code} onChange={(event) => updateLine(line.id, { tooth_code: event.target.value.replace(/\D/g, "").slice(0, 2) })} className="auth-input" /></label>
-              <label className="md:col-span-3"><span className="mb-1 block text-[11px] font-semibold text-[#61706b]">Face</span><select value={line.surface} onChange={(event) => updateLine(line.id, { surface: event.target.value })} className="auth-input"><option value="">Não especificada</option><option value="mesial">Mesial</option><option value="occlusal_incisal">Oclusal / incisal</option><option value="distal">Distal</option><option value="vestibular">Vestibular</option><option value="lingual_palatal">Lingual / palatina</option><option value="cervical">Cervical</option><option value="all">Todas</option></select></label>
+              <label className="md:col-span-1"><span className="mb-1 block text-[11px] font-semibold text-[#61706b]">Qtd.</span><input type="number" min="0.01" max="100" step="0.01" value={line.quantity} onChange={(event) => updateLine(line.id, { quantity: Number(event.target.value) })} className="auth-input" /></label>
+              <label className="md:col-span-2"><span className="mb-1 block text-[11px] font-semibold text-[#61706b]">Valor unitário</span><input type="number" min="0" step="0.01" value={line.unit_price} onChange={(event) => updateLine(line.id, { unit_price: Number(event.target.value) })} className="auth-input" /></label>
+              <label className="md:col-span-2"><span className="mb-1 block text-[11px] font-semibold text-[#61706b]">Dentição</span><select value={line.tooth_set} onChange={(event) => updateLine(line.id, { tooth_set: event.target.value as ToothSet, source_odontogram_public_id: null })} className="auth-input"><option value="permanent">Permanente</option><option value="deciduous">Decídua</option></select></label>
+              <label className="md:col-span-2"><span className="mb-1 block text-[11px] font-semibold text-[#61706b]">Dente FDI</span><input inputMode="numeric" minLength={2} maxLength={2} placeholder="16" value={line.tooth_code} onChange={(event) => updateLine(line.id, { tooth_code: event.target.value.replace(/\D/g, "").slice(0, 2), source_odontogram_public_id: null })} className="auth-input" /></label>
+              <label className="md:col-span-3"><span className="mb-1 block text-[11px] font-semibold text-[#61706b]">Faces</span><select value={line.surfaces.length === 1 ? line.surfaces[0] : ""} onChange={(event) => updateLine(line.id, { surfaces: event.target.value ? [event.target.value] : [], source_odontogram_public_id: null })} className="auth-input"><option value="">{line.surfaces.length > 1 ? line.surfaces.length + " faces do odontograma" : "Não especificada"}</option><option value="mesial">Mesial</option><option value="occlusal_incisal">Oclusal / incisal</option><option value="distal">Distal</option><option value="vestibular">Vestibular</option><option value="lingual_palatal">Lingual / palatina</option><option value="cervical">Cervical</option><option value="all">Dente inteiro</option></select></label>
               <div className="flex items-end justify-end md:col-span-2"><span className="pb-3 text-sm font-semibold">{currency.format(line.quantity * line.unit_price)}</span></div>
             </div>
           </div>)}</div>

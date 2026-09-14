@@ -8,6 +8,7 @@ type ToothSet = "permanent" | "deciduous";
 type Surface = "mesial" | "occlusal_incisal" | "distal" | "vestibular" | "lingual_palatal" | "cervical" | "all";
 type Entry = {
   id: number;
+  public_id: string;
   tooth_code: number | null;
   tooth_set: ToothSet | null;
   surfaces: Surface[];
@@ -100,7 +101,7 @@ function Arch({ teeth, upper, latest, selected, onSelect }: { teeth: number[]; u
   </div>;
 }
 
-export function OdontogramChart({ publicId, entries, canEdit }: { publicId: string; entries: Entry[]; canEdit: boolean }) {
+export function OdontogramChart({ publicId, entries, canEdit, canCreateBudget }: { publicId: string; entries: Entry[]; canEdit: boolean; canCreateBudget: boolean }) {
   const firstPermanent = entries.find((entry) => entry.tooth_set === "permanent" && entry.tooth_code)?.tooth_code ?? 11;
   const [dentition, setDentition] = useState<ToothSet>("permanent");
   const [selected, setSelected] = useState(firstPermanent);
@@ -145,7 +146,7 @@ export function OdontogramChart({ publicId, entries, canEdit }: { publicId: stri
     </div>
     <div className="grid gap-4 p-5 sm:p-6 lg:grid-cols-[180px_1fr]">
       <div className="rounded-2xl bg-[#17201d] p-4 text-white"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-white/45">Dente selecionado</p><p className="mt-1 text-4xl font-semibold tracking-[-.06em]">{selected}</p><p className="mt-2 text-xs text-white/55">{selectedEntries.length ? `${selectedEntries.length} registro(s) clínico(s)` : "Sem histórico clínico"}</p>{canEdit ? <Link href={`?panel=odontogram&tooth=${selected}&dentition=${dentition}#odontograma`} className="mt-4 flex h-9 items-center justify-center gap-1.5 rounded-xl bg-white text-xs font-bold text-[#176b55]"><Plus size={14} />Novo registro</Link> : null}</div>
-      <div>{selectedEntries.length ? <div className="space-y-2">{selectedEntries.map((entry) => <div key={entry.id} className="flex gap-3 rounded-xl border border-[#e3e8e5] p-3"><span className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#f4f7f5] ${toothTone(entry)}`}>{entry.entry_kind === "executed_procedure" ? <CheckCircle2 size={15} /> : entry.entry_kind === "planned_procedure" ? <Activity size={15} /> : <CircleDot size={15} />}</span><div className="min-w-0"><p className="text-xs font-semibold text-[#35423e]">{entry.description}</p><p className="mt-1 text-[10px] text-[#84908b]">{date.format(new Date(entry.occurred_at))} · {entry.entry_kind === "diagnosis" ? "Diagnóstico" : entry.entry_kind === "condition" ? "Condição" : entry.entry_kind === "planned_procedure" ? "Planejado" : "Executado"}</p><p className="mt-1.5 text-[10px] font-semibold text-[#60706a]">{surfaceSummary(entry.surfaces)}</p></div></div>)}</div> : <div className="grid min-h-28 place-items-center rounded-2xl border border-dashed border-[#d7dfdb] bg-[#fafbfa] text-center"><div><CircleDot size={18} className="mx-auto text-[#a5afab]" /><p className="mt-2 text-xs font-semibold text-[#61706b]">Dente {selected} sem registros</p><p className="mt-1 text-[11px] text-[#8a9490]">A situação clínica aparecerá aqui.</p></div></div>}</div>
+      <div>{selectedEntries.length ? <div className="space-y-2">{selectedEntries.map((entry) => <div key={entry.id} className="flex gap-3 rounded-xl border border-[#e3e8e5] p-3"><span className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#f4f7f5] ${toothTone(entry)}`}>{entry.entry_kind === "executed_procedure" ? <CheckCircle2 size={15} /> : entry.entry_kind === "planned_procedure" ? <Activity size={15} /> : <CircleDot size={15} />}</span><div className="min-w-0"><p className="text-xs font-semibold text-[#35423e]">{entry.description}</p><p className="mt-1 text-[10px] text-[#84908b]">{date.format(new Date(entry.occurred_at))} · {entry.entry_kind === "diagnosis" ? "Diagnóstico" : entry.entry_kind === "condition" ? "Condição" : entry.entry_kind === "planned_procedure" ? "Planejado" : "Executado"}</p><p className="mt-1.5 text-[10px] font-semibold text-[#60706a]">{surfaceSummary(entry.surfaces)}</p>{entry.entry_kind === "planned_procedure" && canCreateBudget ? <Link href={`?panel=budget&source=${entry.public_id}#orcamentos`} className="mt-2 inline-flex items-center gap-1 rounded-lg bg-[#e7f1ed] px-2.5 py-1.5 text-[10px] font-bold text-[#176b55] hover:bg-[#dcece5]"><Plus size={12} />Criar orçamento</Link> : null}</div></div>)}</div> : <div className="grid min-h-28 place-items-center rounded-2xl border border-dashed border-[#d7dfdb] bg-[#fafbfa] text-center"><div><CircleDot size={18} className="mx-auto text-[#a5afab]" /><p className="mt-2 text-xs font-semibold text-[#61706b]">Dente {selected} sem registros</p><p className="mt-1 text-[11px] text-[#8a9490]">A situação clínica aparecerá aqui.</p></div></div>}</div>
     </div>
   </article>;
 }

@@ -313,10 +313,12 @@ export async function archivePatientFile(publicId: string, formData: FormData) {
 
 type BudgetItemInput = {
   catalog_public_id: string | null;
+  source_odontogram_public_id?: string | null;
   name: string;
   quantity: number;
   unit_price: number;
   tooth_code: number | null;
+  tooth_set?: ToothSet;
   surfaces: string[];
 };
 
@@ -342,13 +344,20 @@ export async function createPatientBudget(publicId: string, formData: FormData) 
     redirect(patientPath(publicId, { error: "invalid_budget", panel: "budget" }));
   }
 
-  const validItems = Array.isArray(items) && items.length > 0 && items.length <= 50 && items.every((item) =>
-    typeof item.name === "string" && item.name.trim().length >= 2 && item.name.length <= 240 &&
-    Number.isFinite(item.quantity) && item.quantity > 0 && item.quantity <= 100 &&
-    Number.isFinite(item.unit_price) && item.unit_price >= 0 &&
-    (item.tooth_code === null || (/^[1-4][1-8]$/.test(String(item.tooth_code)))) &&
-    Array.isArray(item.surfaces)
-  );
+  const validItems = Array.isArray(items) && items.length > 0 && items.length <= 50 && items.every((item) => {
+    const toothSet = item.tooth_set ?? "permanent";
+    const validTooth = item.tooth_code === null || (
+      toothSet === "permanent"
+        ? /^[1-4][1-8]$/.test(String(item.tooth_code))
+        : toothSet === "deciduous" && /^[5-8][1-5]$/.test(String(item.tooth_code))
+    );
+    const validSource = !item.source_odontogram_public_id || /^[0-9a-f-]{36}$/i.test(item.source_odontogram_public_id);
+    return typeof item.name === "string" && item.name.trim().length >= 2 && item.name.length <= 240 &&
+      Number.isFinite(item.quantity) && item.quantity > 0 && item.quantity <= 100 &&
+      Number.isFinite(item.unit_price) && item.unit_price >= 0 &&
+      toothSets.has(toothSet) && validTooth && validSource &&
+      Array.isArray(item.surfaces) && item.surfaces.every((surface) => surfaces.has(surface as Surface));
+  });
   if (description.length < 2 || !discountTypes.has(discountType) || discountValue < 0 ||
       (discountType === "percentage" && discountValue > 100) || entryAmount < 0 ||
       !Number.isInteger(installmentCount) || installmentCount < 0 || installmentCount > 60 ||
@@ -362,7 +371,9 @@ export async function createPatientBudget(publicId: string, formData: FormData) 
     quantity: Math.round(item.quantity * 100) / 100,
     unit_price: Math.round(item.unit_price * 100) / 100,
     tooth_code: item.tooth_code,
+    tooth_set: item.tooth_set ?? "permanent",
     surfaces: item.surfaces,
+    source_odontogram_public_id: item.source_odontogram_public_id || null,
   }));
   const { error } = await context.supabase.rpc("create_patient_budget", {
     p_patient_public_id: publicId,
