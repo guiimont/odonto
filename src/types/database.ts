@@ -2465,6 +2465,16 @@ export type Database = {
       }
     }
     Functions: {
+      advance_clinical_procedure: {
+        Args: {
+          p_action: string
+          p_evolution_description?: string
+          p_occurred_at?: string
+          p_patient_public_id: string
+          p_procedure_public_id: string
+        }
+        Returns: string
+      }
       approve_patient_budget: {
         Args: { p_budget_public_id: string }
         Returns: string
