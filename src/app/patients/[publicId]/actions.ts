@@ -424,3 +424,46 @@ export async function receiveInstallmentPayment(publicId: string, formData: Form
   refreshPatient(publicId);
   redirect(patientPath(publicId, { saved: "payment" }));
 }
+
+
+export async function startClinicalProcedure(publicId: string, formData: FormData) {
+  const { context } = await getOwnedPatient(publicId);
+  if (!clinicalRoles.has(context.role)) redirect(patientPath(publicId, { error: "forbidden" }));
+  const procedurePublicId = text(formData, "procedure_public_id", 50);
+  if (!/^[0-9a-f-]{36}$/i.test(procedurePublicId)) {
+    redirect(patientPath(publicId, { error: "invalid_procedure" }));
+  }
+  const { error } = await context.supabase.rpc("advance_clinical_procedure", {
+    p_patient_public_id: publicId,
+    p_procedure_public_id: procedurePublicId,
+    p_action: "start",
+  });
+  if (error) redirect(patientPath(publicId, { error: "procedure_failed" }));
+  refreshPatient(publicId);
+  redirect(patientPath(publicId, { saved: "procedure_started" }));
+}
+
+export async function completeClinicalProcedure(publicId: string, formData: FormData) {
+  const { context } = await getOwnedPatient(publicId);
+  if (!clinicalRoles.has(context.role)) redirect(patientPath(publicId, { error: "forbidden" }));
+  const procedurePublicId = text(formData, "procedure_public_id", 50);
+  const description = text(formData, "description", 10000);
+  const occurredAt = localDateTimeToIso(
+    text(formData, "occurred_date", 10),
+    text(formData, "occurred_time", 5),
+    context.clinic.timezone,
+  );
+  if (!/^[0-9a-f-]{36}$/i.test(procedurePublicId) || description.length < 3 || !occurredAt) {
+    redirect(patientPath(publicId, { error: "invalid_procedure", panel: "complete-procedure", procedure: procedurePublicId }));
+  }
+  const { error } = await context.supabase.rpc("advance_clinical_procedure", {
+    p_patient_public_id: publicId,
+    p_procedure_public_id: procedurePublicId,
+    p_action: "complete",
+    p_occurred_at: occurredAt,
+    p_evolution_description: description,
+  });
+  if (error) redirect(patientPath(publicId, { error: "procedure_failed", panel: "complete-procedure", procedure: procedurePublicId }));
+  refreshPatient(publicId);
+  redirect(patientPath(publicId, { saved: "procedure_completed" }));
+}
