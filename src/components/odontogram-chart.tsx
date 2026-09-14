@@ -22,6 +22,19 @@ const permanentLower = [48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
 const deciduousUpper = [55,54,53,52,51,61,62,63,64,65];
 const deciduousLower = [85,84,83,82,81,71,72,73,74,75];
 const date = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+const surfaceLabels: Record<Surface, string> = {
+  mesial: "Mesial",
+  occlusal_incisal: "Oclusal / incisal",
+  distal: "Distal",
+  vestibular: "Vestibular",
+  lingual_palatal: "Lingual / palatina",
+  cervical: "Cervical",
+  all: "Dente inteiro",
+};
+
+function surfaceSummary(surfaces: Surface[]) {
+  return surfaces.length ? surfaces.map((surface) => surfaceLabels[surface]).join(" · ") : "Sem face específica";
+}
 
 function toothTone(entry?: Entry) {
   if (!entry) return "text-[#8c9994]";
@@ -132,7 +145,7 @@ export function OdontogramChart({ publicId, entries, canEdit }: { publicId: stri
     </div>
     <div className="grid gap-4 p-5 sm:p-6 lg:grid-cols-[180px_1fr]">
       <div className="rounded-2xl bg-[#17201d] p-4 text-white"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-white/45">Dente selecionado</p><p className="mt-1 text-4xl font-semibold tracking-[-.06em]">{selected}</p><p className="mt-2 text-xs text-white/55">{selectedEntries.length ? `${selectedEntries.length} registro(s) clínico(s)` : "Sem histórico clínico"}</p>{canEdit ? <Link href={`?panel=odontogram&tooth=${selected}&dentition=${dentition}#odontograma`} className="mt-4 flex h-9 items-center justify-center gap-1.5 rounded-xl bg-white text-xs font-bold text-[#176b55]"><Plus size={14} />Novo registro</Link> : null}</div>
-      <div>{selectedEntries.length ? <div className="space-y-2">{selectedEntries.map((entry) => <div key={entry.id} className="flex gap-3 rounded-xl border border-[#e3e8e5] p-3"><span className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#f4f7f5] ${toothTone(entry)}`}>{entry.entry_kind === "executed_procedure" ? <CheckCircle2 size={15} /> : entry.entry_kind === "planned_procedure" ? <Activity size={15} /> : <CircleDot size={15} />}</span><div className="min-w-0"><p className="text-xs font-semibold text-[#35423e]">{entry.description}</p><p className="mt-1 text-[10px] text-[#84908b]">{date.format(new Date(entry.occurred_at))} · {entry.entry_kind === "diagnosis" ? "Diagnóstico" : entry.entry_kind === "condition" ? "Condição" : entry.entry_kind === "planned_procedure" ? "Planejado" : "Executado"}</p></div></div>)}</div> : <div className="grid min-h-28 place-items-center rounded-2xl border border-dashed border-[#d7dfdb] bg-[#fafbfa] text-center"><div><CircleDot size={18} className="mx-auto text-[#a5afab]" /><p className="mt-2 text-xs font-semibold text-[#61706b]">Dente {selected} sem registros</p><p className="mt-1 text-[11px] text-[#8a9490]">A situação clínica aparecerá aqui.</p></div></div>}</div>
+      <div>{selectedEntries.length ? <div className="space-y-2">{selectedEntries.map((entry) => <div key={entry.id} className="flex gap-3 rounded-xl border border-[#e3e8e5] p-3"><span className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#f4f7f5] ${toothTone(entry)}`}>{entry.entry_kind === "executed_procedure" ? <CheckCircle2 size={15} /> : entry.entry_kind === "planned_procedure" ? <Activity size={15} /> : <CircleDot size={15} />}</span><div className="min-w-0"><p className="text-xs font-semibold text-[#35423e]">{entry.description}</p><p className="mt-1 text-[10px] text-[#84908b]">{date.format(new Date(entry.occurred_at))} · {entry.entry_kind === "diagnosis" ? "Diagnóstico" : entry.entry_kind === "condition" ? "Condição" : entry.entry_kind === "planned_procedure" ? "Planejado" : "Executado"}</p><p className="mt-1.5 text-[10px] font-semibold text-[#60706a]">{surfaceSummary(entry.surfaces)}</p></div></div>)}</div> : <div className="grid min-h-28 place-items-center rounded-2xl border border-dashed border-[#d7dfdb] bg-[#fafbfa] text-center"><div><CircleDot size={18} className="mx-auto text-[#a5afab]" /><p className="mt-2 text-xs font-semibold text-[#61706b]">Dente {selected} sem registros</p><p className="mt-1 text-[11px] text-[#8a9490]">A situação clínica aparecerá aqui.</p></div></div>}</div>
     </div>
   </article>;
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AlertTriangle, ClipboardCheck, FilePenLine, ShieldAlert, Stethoscope, X } from "lucide-react";
+import { OdontogramFaceSelector } from "@/components/odontogram-face-selector";
 import {
   createClinicalEvolution,
   createMedicalAlert,
@@ -128,7 +129,7 @@ export function PatientRecordDialogs({ publicId, panel, selectedTooth, selectedD
           <Field label="Dentição *"><select name="tooth_set" defaultValue={selectedDentition === "deciduous" ? "deciduous" : "permanent"} className="auth-input"><option value="permanent">Permanente</option><option value="deciduous">Decídua</option></select></Field>
           <Field label="Dente FDI *"><input name="tooth_code" required inputMode="numeric" defaultValue={selectedTooth ?? ""} minLength={2} maxLength={2} placeholder="Ex.: 16" className="auth-input" /></Field>
           <Field label="Tipo de registro *" wide><select name="entry_kind" defaultValue="condition" className="auth-input"><option value="diagnosis">Diagnóstico</option><option value="condition">Condição atual</option><option value="planned_procedure">Procedimento planejado</option><option value="executed_procedure">Procedimento executado</option></select></Field>
-          <fieldset className="sm:col-span-2"><legend className="mb-2 text-xs font-semibold text-[#52605b]">Faces envolvidas</legend><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{[["mesial","Mesial"],["occlusal_incisal","Oclusal / incisal"],["distal","Distal"],["vestibular","Vestibular"],["lingual_palatal","Lingual / palatina"],["cervical","Cervical"],["all","Todas"]].map(([value,label]) => <label key={value} className="flex items-center gap-2 rounded-xl border border-[#dce2df] p-3 text-xs font-medium"><input type="checkbox" name="surfaces" value={value} className="accent-[#176b55]" />{label}</label>)}</div></fieldset>
+          <OdontogramFaceSelector />
           <Field label="Descrição clínica *" wide><textarea name="description" required minLength={3} rows={5} placeholder="Descreva o achado, diagnóstico ou procedimento sem abreviações ambíguas." className="w-full resize-y rounded-xl border border-[#dce2df] bg-[#f8faf9] p-3.5 text-sm outline-none focus:border-[#176b55]" /></Field>
         </div>
         <Footer publicId={publicId} label="Salvar registro" />
