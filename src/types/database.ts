@@ -2455,6 +2455,34 @@ export type Database = {
       }
     }
     Functions: {
+      approve_patient_budget: {
+        Args: { p_budget_public_id: string }
+        Returns: string
+      }
+      create_patient_budget: {
+        Args: {
+          p_description: string
+          p_discount_type: Database["public"]["Enums"]["discount_type"]
+          p_discount_value: number
+          p_entry_amount: number
+          p_first_due_date: string
+          p_items: Json
+          p_observations?: string
+          p_patient_public_id: string
+          p_remaining_installments_count: number
+        }
+        Returns: string
+      }
+      register_installment_payment: {
+        Args: {
+          p_amount: number
+          p_card_installments?: number
+          p_installment_public_id: string
+          p_observations?: string
+          p_payment_method_public_id: string
+        }
+        Returns: string
+      }
       submit_patient_anamnesis: {
         Args: {
           p_answered_by_patient?: boolean

@@ -11,6 +11,7 @@ type ToothSet = Database["public"]["Enums"]["tooth_set"];
 type EntryKind = Database["public"]["Enums"]["odontogram_entry_kind"];
 type Surface = Database["public"]["Enums"]["odontogram_surface"];
 type Selection = Database["public"]["Enums"]["anamnesis_answer_selection"];
+type DiscountType = Database["public"]["Enums"]["discount_type"];
 
 const clinicalRoles = new Set(["owner", "admin", "dentist", "assistant"]);
 const patientEditorRoles = new Set(["owner", "admin", "dentist", "assistant", "secretary"]);
@@ -22,6 +23,10 @@ const surfaces = new Set<Surface>(["mesial", "occlusal_incisal", "distal", "vest
 const selections = new Set<Selection>(["yes", "no", "unknown"]);
 const fileCategories = new Set(["intraoral_photo", "radiograph", "exam", "document", "other"]);
 const allowedMimeTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "application/pdf", "application/dicom"]);
+const budgetRoles = new Set(["owner", "admin", "dentist", "assistant", "secretary"]);
+const approvalRoles = new Set(["owner", "admin", "dentist", "secretary", "financial"]);
+const financeRoles = new Set(["owner", "admin", "secretary", "financial"]);
+const discountTypes = new Set<DiscountType>(["fixed_amount", "percentage"]);
 
 function text(formData: FormData, key: string, max = 5000) {
   return String(formData.get(key) ?? "").trim().slice(0, max);
@@ -304,4 +309,107 @@ export async function archivePatientFile(publicId: string, formData: FormData) {
   await context.supabase.from("patient_files").update({ deleted_at: new Date().toISOString() })
     .eq("clinic_id", context.clinic.id).eq("patient_id", patient.id).eq("public_id", filePublicId).is("deleted_at", null);
   refreshPatient(publicId);
+}
+
+type BudgetItemInput = {
+  catalog_public_id: string | null;
+  name: string;
+  quantity: number;
+  unit_price: number;
+  tooth_code: number | null;
+  surfaces: string[];
+};
+
+function amount(formData: FormData, key: string) {
+  const raw = text(formData, key, 30).replace(",", ".");
+  return raw ? Number(raw) : 0;
+}
+
+export async function createPatientBudget(publicId: string, formData: FormData) {
+  const { context } = await getOwnedPatient(publicId);
+  if (!budgetRoles.has(context.role)) redirect(patientPath(publicId, { error: "forbidden" }));
+
+  const description = text(formData, "description", 200);
+  const discountType = text(formData, "discount_type", 30) as DiscountType;
+  const discountValue = amount(formData, "discount_value");
+  const entryAmount = amount(formData, "entry_amount");
+  const installmentCount = Number(text(formData, "installment_count", 3) || "0");
+  const firstDueDate = text(formData, "first_due_date", 10);
+  let items: BudgetItemInput[] = [];
+  try {
+    items = JSON.parse(text(formData, "items", 50000)) as BudgetItemInput[];
+  } catch {
+    redirect(patientPath(publicId, { error: "invalid_budget", panel: "budget" }));
+  }
+
+  const validItems = Array.isArray(items) && items.length > 0 && items.length <= 50 && items.every((item) =>
+    typeof item.name === "string" && item.name.trim().length >= 2 && item.name.length <= 240 &&
+    Number.isFinite(item.quantity) && item.quantity > 0 && item.quantity <= 100 &&
+    Number.isFinite(item.unit_price) && item.unit_price >= 0 &&
+    (item.tooth_code === null || (/^[1-4][1-8]$/.test(String(item.tooth_code)))) &&
+    Array.isArray(item.surfaces)
+  );
+  if (description.length < 2 || !discountTypes.has(discountType) || discountValue < 0 ||
+      (discountType === "percentage" && discountValue > 100) || entryAmount < 0 ||
+      !Number.isInteger(installmentCount) || installmentCount < 0 || installmentCount > 60 ||
+      (installmentCount > 0 && !/^\d{4}-\d{2}-\d{2}$/.test(firstDueDate)) || !validItems) {
+    redirect(patientPath(publicId, { error: "invalid_budget", panel: "budget" }));
+  }
+
+  const normalizedItems = items.map((item) => ({
+    catalog_public_id: item.catalog_public_id || null,
+    name: item.name.trim(),
+    quantity: Math.round(item.quantity * 100) / 100,
+    unit_price: Math.round(item.unit_price * 100) / 100,
+    tooth_code: item.tooth_code,
+    surfaces: item.surfaces,
+  }));
+  const { error } = await context.supabase.rpc("create_patient_budget", {
+    p_patient_public_id: publicId,
+    p_description: description,
+    p_discount_type: discountType,
+    p_discount_value: discountValue,
+    p_entry_amount: entryAmount,
+    p_remaining_installments_count: installmentCount,
+    p_first_due_date: firstDueDate || new Date().toISOString().slice(0, 10),
+    p_items: normalizedItems as Json,
+    p_observations: optional(formData, "observations", 4000) ?? undefined,
+  });
+  if (error) redirect(patientPath(publicId, { error: "invalid_budget", panel: "budget" }));
+  refreshPatient(publicId);
+  redirect(patientPath(publicId, { saved: "budget" }));
+}
+
+export async function approvePatientBudget(publicId: string, formData: FormData) {
+  const { context } = await getOwnedPatient(publicId);
+  if (!approvalRoles.has(context.role)) redirect(patientPath(publicId, { error: "forbidden" }));
+  const budgetPublicId = text(formData, "budget_public_id", 50);
+  if (!/^[0-9a-f-]{36}$/i.test(budgetPublicId)) redirect(patientPath(publicId, { error: "invalid_budget" }));
+  const { error } = await context.supabase.rpc("approve_patient_budget", { p_budget_public_id: budgetPublicId });
+  if (error) redirect(patientPath(publicId, { error: "approve_budget_failed" }));
+  refreshPatient(publicId);
+  redirect(patientPath(publicId, { saved: "budget_approved" }));
+}
+
+export async function receiveInstallmentPayment(publicId: string, formData: FormData) {
+  const { context } = await getOwnedPatient(publicId);
+  if (!financeRoles.has(context.role)) redirect(patientPath(publicId, { error: "forbidden" }));
+  const installmentPublicId = text(formData, "installment_public_id", 50);
+  const paymentMethodPublicId = text(formData, "payment_method_public_id", 50);
+  const receivedAmount = amount(formData, "amount");
+  const cardInstallments = Number(text(formData, "card_installments", 2) || "1");
+  if (!/^[0-9a-f-]{36}$/i.test(installmentPublicId) || !/^[0-9a-f-]{36}$/i.test(paymentMethodPublicId) ||
+      !Number.isFinite(receivedAmount) || receivedAmount <= 0 || !Number.isInteger(cardInstallments) || cardInstallments < 1 || cardInstallments > 24) {
+    redirect(patientPath(publicId, { error: "invalid_payment" }));
+  }
+  const { error } = await context.supabase.rpc("register_installment_payment", {
+    p_installment_public_id: installmentPublicId,
+    p_payment_method_public_id: paymentMethodPublicId,
+    p_amount: receivedAmount,
+    p_card_installments: cardInstallments,
+    p_observations: optional(formData, "observations", 2000) ?? undefined,
+  });
+  if (error) redirect(patientPath(publicId, { error: "payment_failed" }));
+  refreshPatient(publicId);
+  redirect(patientPath(publicId, { saved: "payment" }));
 }
