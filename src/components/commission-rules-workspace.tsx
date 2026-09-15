@@ -1,80 +1,780 @@
 "use client";
 
-import { useActionState, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useActionState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useFormStatus } from "react-dom";
-import { Archive, BadgePercent, Calculator, CheckCircle2, Edit3, Menu, Plus, Search, ShieldCheck, UserRound, X } from "lucide-react";
-import { initialCommissionRuleActionState, saveCommissionRule, setCommissionRuleActive } from "@/app/clinic/commissions/actions";
+import {
+  Archive,
+  BadgePercent,
+  Calculator,
+  CheckCircle2,
+  Edit3,
+  Menu,
+  Plus,
+  Search,
+  ShieldCheck,
+  UserRound,
+  X,
+} from "lucide-react";
+import {
+  initialCommissionRuleActionState,
+  saveCommissionRule,
+  setCommissionRuleActive,
+} from "@/app/clinic/commissions/actions";
 import { ClinicAdminNav } from "@/components/clinic-admin-nav";
 import { WorkspaceShell } from "@/components/workspace-shell";
 
-type Professional = { profileId: string; name: string; specialty: string | null; role: string };
-type Treatment = { publicId: string; name: string; category: string | null; active: boolean };
+type Professional = {
+  profileId: string;
+  name: string;
+  specialty: string | null;
+  role: string;
+};
+type Treatment = {
+  publicId: string;
+  name: string;
+  category: string | null;
+  active: boolean;
+};
 type Plan = { publicId: string; name: string; active: boolean };
 type Rule = {
-  publicId: string; professionalProfileId: string; professionalName: string;
+  publicId: string;
+  professionalProfileId: string;
+  professionalName: string;
   triggerEvent: "treatment_completed" | "installment_paid";
   calculationType: "percentage" | "fixed_amount";
-  calculationBasis: "procedure_gross" | "procedure_net_after_discount" | "installment_gross" | "payment_net";
-  value: number; treatmentPublicId: string | null; treatmentName: string | null;
-  treatmentCategory: string | null; dentalPlanPublicId: string | null; dentalPlanName: string | null;
-  effectiveFrom: string; effectiveUntil: string | null; active: boolean;
+  calculationBasis:
+    | "procedure_gross"
+    | "procedure_net_after_discount"
+    | "installment_gross"
+    | "payment_net";
+  value: number;
+  treatmentPublicId: string | null;
+  treatmentName: string | null;
+  treatmentCategory: string | null;
+  dentalPlanPublicId: string | null;
+  dentalPlanName: string | null;
+  effectiveFrom: string;
+  effectiveUntil: string | null;
+  active: boolean;
 };
 
-const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-const roleLabels: Record<string, string> = { owner: "Proprietário", admin: "Administrador", dentist: "Dentista", assistant: "Auxiliar", secretary: "Secretaria", financial: "Financeiro", auditor: "Auditoria" };
+const currency = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+});
+const roleLabels: Record<string, string> = {
+  owner: "Proprietário",
+  admin: "Administrador",
+  dentist: "Dentista",
+  assistant: "Auxiliar",
+  secretary: "Secretaria",
+  financial: "Financeiro",
+  auditor: "Auditoria",
+};
 
-function dateInput(value?: string | null) { return value ? value.slice(0, 10) : new Date().toISOString().slice(0, 10); }
-function dateLabel(value?: string | null) { return value ? new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(value)) : "sem término"; }
-function scopeFor(rule: Rule) { return rule.treatmentPublicId ? "treatment" : rule.treatmentCategory ? "category" : rule.dentalPlanPublicId ? "plan" : "general"; }
-function scopeLabel(rule: Rule) { return rule.treatmentName ? `Tratamento: ${rule.treatmentName}` : rule.treatmentCategory ? `Categoria: ${rule.treatmentCategory}` : rule.dentalPlanName ? `Plano: ${rule.dentalPlanName}` : "Todos os tratamentos"; }
-function basisLabel(basis: Rule["calculationBasis"]) { return basis === "procedure_gross" ? "valor bruto do procedimento" : basis === "procedure_net_after_discount" ? "valor líquido após desconto" : basis === "installment_gross" ? "valor bruto da parcela" : "valor líquido recebido"; }
-
-function SubmitButton({ disabled, editing }: { disabled: boolean; editing: boolean }) {
-  const { pending } = useFormStatus();
-  return <button disabled={disabled || pending} className="h-11 rounded-xl bg-[#176b55] px-5 text-sm font-semibold text-white hover:bg-[#0f513f] disabled:cursor-not-allowed disabled:opacity-45">{pending ? "Salvando..." : editing ? "Salvar alterações" : "Criar regra"}</button>;
+function dateInput(value?: string | null) {
+  return value ? value.slice(0, 10) : new Date().toISOString().slice(0, 10);
+}
+function dateLabel(value?: string | null) {
+  return value
+    ? new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(
+        new Date(value),
+      )
+    : "sem término";
+}
+function scopeFor(rule: Rule) {
+  return rule.treatmentPublicId
+    ? "treatment"
+    : rule.treatmentCategory
+      ? "category"
+      : rule.dentalPlanPublicId
+        ? "plan"
+        : "general";
+}
+function scopeLabel(rule: Rule) {
+  return rule.treatmentName
+    ? `Tratamento: ${rule.treatmentName}`
+    : rule.treatmentCategory
+      ? `Categoria: ${rule.treatmentCategory}`
+      : rule.dentalPlanName
+        ? `Plano: ${rule.dentalPlanName}`
+        : "Todos os tratamentos";
+}
+function basisLabel(basis: Rule["calculationBasis"]) {
+  return basis === "procedure_gross"
+    ? "valor bruto do procedimento"
+    : basis === "procedure_net_after_discount"
+      ? "valor líquido após desconto"
+      : basis === "installment_gross"
+        ? "valor bruto da parcela"
+        : "valor líquido recebido";
 }
 
-function RuleForm({ rule, professionals, treatments, plans, onClose }: { rule: Rule | null; professionals: Professional[]; treatments: Treatment[]; plans: Plan[]; onClose: () => void }) {
+function SubmitButton({
+  disabled,
+  editing,
+}: {
+  disabled: boolean;
+  editing: boolean;
+}) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      disabled={disabled || pending}
+      className="h-11 rounded-xl bg-[#176b55] px-5 text-sm font-semibold text-white hover:bg-[#0f513f] disabled:cursor-not-allowed disabled:opacity-45"
+    >
+      {pending ? "Salvando..." : editing ? "Salvar alterações" : "Criar regra"}
+    </button>
+  );
+}
+
+function RuleForm({
+  rule,
+  professionals,
+  treatments,
+  plans,
+  onClose,
+}: {
+  rule: Rule | null;
+  professionals: Professional[];
+  treatments: Treatment[];
+  plans: Plan[];
+  onClose: () => void;
+}) {
   const initialScope = rule ? scopeFor(rule) : "general";
-  const [state, formAction] = useActionState(saveCommissionRule, initialCommissionRuleActionState);
-  const [calculationType, setCalculationType] = useState<"percentage" | "fixed_amount">(rule?.calculationType ?? "percentage");
-  const [basis, setBasis] = useState<"procedure_gross" | "procedure_net_after_discount">(rule?.calculationBasis === "procedure_net_after_discount" ? "procedure_net_after_discount" : "procedure_gross");
+  const [state, formAction] = useActionState(
+    saveCommissionRule,
+    initialCommissionRuleActionState,
+  );
+  const [triggerEvent, setTriggerEvent] = useState<
+    "treatment_completed" | "installment_paid"
+  >(rule?.triggerEvent ?? "treatment_completed");
+  const [calculationType, setCalculationType] = useState<
+    "percentage" | "fixed_amount"
+  >(rule?.calculationType ?? "percentage");
+  const [basis, setBasis] = useState<Rule["calculationBasis"]>(
+    rule?.calculationBasis ?? "procedure_gross",
+  );
   const [scope, setScope] = useState(initialScope);
   const [value, setValue] = useState(rule?.value ?? 10);
   const [sampleAmount, setSampleAmount] = useState(1000);
-  const estimated = calculationType === "percentage" ? sampleAmount * Math.max(0, value) / 100 : Math.max(0, value);
+  const estimated =
+    calculationType === "percentage"
+      ? (sampleAmount * Math.max(0, value)) / 100
+      : Math.max(0, value);
 
-  useEffect(() => { if (state.status === "success") onClose(); }, [state.status, state.submittedAt, onClose]);
+  useEffect(() => {
+    if (state.status === "success") onClose();
+  }, [state.status, state.submittedAt, onClose]);
 
   function changeCalculation(next: "percentage" | "fixed_amount") {
     setCalculationType(next);
     if (next === "fixed_amount") setScope("treatment");
   }
 
-  const cannotSave = !professionals.length || (calculationType === "fixed_amount" && !treatments.length);
+  function changeTrigger(next: "treatment_completed" | "installment_paid") {
+    setTriggerEvent(next);
+    if (next === "installment_paid") {
+      setCalculationType("percentage");
+      setBasis("payment_net");
+    } else {
+      setBasis("procedure_gross");
+    }
+  }
 
-  return <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#0b1310]/50 backdrop-blur-[2px] sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-labelledby="commission-form-title"><div className="max-h-[96vh] w-full overflow-y-auto rounded-t-[24px] bg-white shadow-2xl sm:max-w-3xl sm:rounded-[24px]"><header className="sticky top-0 z-10 flex items-start justify-between border-b border-[#e2e7e4] bg-white px-5 py-5 sm:px-7"><div><p className="text-xs font-semibold uppercase tracking-[.12em] text-[#176b55]">Política de remuneração</p><h2 id="commission-form-title" className="mt-1 text-xl font-semibold tracking-[-.025em]">{rule ? "Editar regra" : "Nova regra de comissão"}</h2></div><button type="button" onClick={onClose} className="grid h-10 w-10 place-items-center rounded-xl text-[#68736f] hover:bg-[#f1f4f2]" aria-label="Fechar"><X size={20} /></button></header><form action={formAction} className="space-y-6 p-5 sm:p-7"><input type="hidden" name="publicId" value={rule?.publicId ?? ""} />
-    <div className="grid gap-4 sm:grid-cols-2"><label className="space-y-1.5 text-sm font-medium">Profissional<select name="professionalProfileId" required defaultValue={rule?.professionalProfileId ?? ""} className="auth-input font-normal"><option value="">Selecione</option>{professionals.map((item) => <option key={item.profileId} value={item.profileId}>{item.name} · {item.specialty ?? roleLabels[item.role] ?? item.role}</option>)}</select></label><label className="space-y-1.5 text-sm font-medium">Evento de geração<select name="triggerEvent" defaultValue="treatment_completed" className="auth-input font-normal"><option value="treatment_completed">Ao concluir o tratamento</option><option value="installment_paid" disabled>Ao receber parcela — próxima etapa</option></select></label></div>
-    <div className="grid gap-4 sm:grid-cols-3"><label className="space-y-1.5 text-sm font-medium">Forma de cálculo<select name="calculationType" value={calculationType} onChange={(event) => changeCalculation(event.target.value as typeof calculationType)} className="auth-input font-normal"><option value="percentage">Percentual</option><option value="fixed_amount">Valor fixo</option></select></label><label className="space-y-1.5 text-sm font-medium">{calculationType === "percentage" ? "Percentual (%)" : "Valor fixo (R$)"}<input name="value" type="number" required min="0.01" max={calculationType === "percentage" ? 100 : undefined} step={calculationType === "percentage" ? "0.01" : "0.01"} value={value} onChange={(event) => setValue(Number(event.target.value))} className="auth-input font-normal" /></label><label className="space-y-1.5 text-sm font-medium">Base de cálculo<select name="calculationBasis" value={basis} onChange={(event) => setBasis(event.target.value as typeof basis)} className="auth-input font-normal"><option value="procedure_gross">Valor bruto</option><option value="procedure_net_after_discount">Líquido após desconto</option></select></label></div>
-    <div><label className="block space-y-1.5 text-sm font-medium">Aplicar a<select name="scope" value={scope} onChange={(event) => setScope(event.target.value)} className="auth-input font-normal"><option value="general">Todos os tratamentos</option><option value="treatment">Um tratamento específico</option><option value="category" disabled={calculationType === "fixed_amount"}>Uma categoria</option><option value="plan" disabled={calculationType === "fixed_amount"}>Um convênio ou plano</option></select></label>{scope === "treatment" ? <label className="mt-3 block space-y-1.5 text-sm font-medium">Tratamento<select name="treatmentPublicId" required defaultValue={rule?.treatmentPublicId ?? ""} className="auth-input font-normal"><option value="">Selecione</option>{treatments.map((item) => <option key={item.publicId} value={item.publicId}>{item.name}{item.active ? "" : " · arquivado"}</option>)}</select></label> : null}{scope === "category" ? <label className="mt-3 block space-y-1.5 text-sm font-medium">Categoria<input name="treatmentCategory" required minLength={2} maxLength={80} defaultValue={rule?.treatmentCategory ?? ""} list="commission-categories" className="auth-input font-normal" /><datalist id="commission-categories">{Array.from(new Set(treatments.map((item) => item.category).filter(Boolean))).map((category) => <option key={category} value={category ?? ""} />)}</datalist></label> : null}{scope === "plan" ? <label className="mt-3 block space-y-1.5 text-sm font-medium">Convênio ou plano<select name="dentalPlanPublicId" required defaultValue={rule?.dentalPlanPublicId ?? ""} className="auth-input font-normal"><option value="">Selecione</option>{plans.map((item) => <option key={item.publicId} value={item.publicId}>{item.name}{item.active ? "" : " · arquivado"}</option>)}</select></label> : null}<p className="mt-2 text-xs leading-5 text-[#71807b]">Regras específicas prevalecem sobre a regra geral. Tratamento tem prioridade sobre categoria e plano.</p></div>
-    <div className="grid gap-4 sm:grid-cols-2"><label className="space-y-1.5 text-sm font-medium">Válida a partir de<input name="effectiveFrom" type="date" required defaultValue={dateInput(rule?.effectiveFrom)} className="auth-input font-normal" /></label><label className="space-y-1.5 text-sm font-medium">Válida até <span className="font-normal text-[#89928f]">(opcional)</span><input name="effectiveUntil" type="date" min={dateInput(rule?.effectiveFrom)} defaultValue={rule?.effectiveUntil ? dateInput(rule.effectiveUntil) : ""} className="auth-input font-normal" /></label></div>
-    <div className="rounded-2xl bg-[#17201d] p-5 text-white"><div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.12em] text-[#d8f66a]"><Calculator size={16} />Simulação antes de salvar</div><div className="mt-4 grid gap-4 sm:grid-cols-[180px_1fr]"><label className="space-y-1.5 text-xs font-medium text-white/65">Exemplo de procedimento<input type="number" min="0" step="0.01" value={sampleAmount} onChange={(event) => setSampleAmount(Number(event.target.value))} className="auth-input text-[#17201d]" /></label><div className="rounded-xl bg-white/8 p-4"><p className="text-xs leading-5 text-white/65">Ao concluir um procedimento de <strong className="text-white">{currency.format(sampleAmount)}</strong>, esta regra provisionará:</p><p className="mt-1 text-3xl font-semibold tracking-[-.05em] text-[#d8f66a]">{currency.format(estimated)}</p><p className="mt-1 text-[11px] text-white/45">Calculado sobre o {basisLabel(basis)}.</p></div></div></div>
-    {calculationType === "fixed_amount" && !treatments.length ? <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Cadastre ao menos um tratamento antes de criar uma comissão em valor fixo.</p> : null}{state.status === "error" ? <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" aria-live="polite">{state.message}</p> : null}<footer className="flex flex-col-reverse gap-3 border-t border-[#e2e7e4] pt-5 sm:flex-row sm:justify-end"><button type="button" onClick={onClose} className="h-11 rounded-xl border border-[#dce2df] px-5 text-sm font-semibold hover:bg-[#f7f9f8]">Cancelar</button><SubmitButton disabled={cannotSave} editing={Boolean(rule)} /></footer>
-  </form></div></div>;
+  const cannotSave =
+    !professionals.length ||
+    (calculationType === "fixed_amount" && !treatments.length);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[#0b1310]/50 backdrop-blur-[2px] sm:items-center sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="commission-form-title"
+    >
+      <div className="max-h-[96vh] w-full overflow-y-auto rounded-t-[24px] bg-white shadow-2xl sm:max-w-3xl sm:rounded-[24px]">
+        <header className="sticky top-0 z-10 flex items-start justify-between border-b border-[#e2e7e4] bg-white px-5 py-5 sm:px-7">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[.12em] text-[#176b55]">
+              Política de remuneração
+            </p>
+            <h2
+              id="commission-form-title"
+              className="mt-1 text-xl font-semibold tracking-[-.025em]"
+            >
+              {rule ? "Editar regra" : "Nova regra de comissão"}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-10 w-10 place-items-center rounded-xl text-[#68736f] hover:bg-[#f1f4f2]"
+            aria-label="Fechar"
+          >
+            <X size={20} />
+          </button>
+        </header>
+        <form action={formAction} className="space-y-6 p-5 sm:p-7">
+          <input type="hidden" name="publicId" value={rule?.publicId ?? ""} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-1.5 text-sm font-medium">
+              Profissional
+              <select
+                name="professionalProfileId"
+                required
+                defaultValue={rule?.professionalProfileId ?? ""}
+                className="auth-input font-normal"
+              >
+                <option value="">Selecione</option>
+                {professionals.map((item) => (
+                  <option key={item.profileId} value={item.profileId}>
+                    {item.name} ·{" "}
+                    {item.specialty ?? roleLabels[item.role] ?? item.role}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-1.5 text-sm font-medium">
+              Evento de geração
+              <select
+                name="triggerEvent"
+                value={triggerEvent}
+                onChange={(event) =>
+                  changeTrigger(event.target.value as typeof triggerEvent)
+                }
+                className="auth-input font-normal"
+              >
+                <option value="treatment_completed">
+                  Ao concluir o tratamento
+                </option>
+                <option value="installment_paid">Ao receber uma parcela</option>
+              </select>
+            </label>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <label className="space-y-1.5 text-sm font-medium">
+              Forma de cálculo
+              <select
+                name="calculationType"
+                value={calculationType}
+                onChange={(event) =>
+                  changeCalculation(
+                    event.target.value as typeof calculationType,
+                  )
+                }
+                className="auth-input font-normal"
+              >
+                <option value="percentage">Percentual</option>
+                <option
+                  value="fixed_amount"
+                  disabled={triggerEvent === "installment_paid"}
+                >
+                  Valor fixo
+                </option>
+              </select>
+            </label>
+            <label className="space-y-1.5 text-sm font-medium">
+              {calculationType === "percentage"
+                ? "Percentual (%)"
+                : "Valor fixo (R$)"}
+              <input
+                name="value"
+                type="number"
+                required
+                min="0.01"
+                max={calculationType === "percentage" ? 100 : undefined}
+                step="0.01"
+                value={value}
+                onChange={(event) => setValue(Number(event.target.value))}
+                className="auth-input font-normal"
+              />
+            </label>
+            <label className="space-y-1.5 text-sm font-medium">
+              Base de cálculo
+              <select
+                name="calculationBasis"
+                value={basis}
+                onChange={(event) =>
+                  setBasis(event.target.value as typeof basis)
+                }
+                className="auth-input font-normal"
+              >
+                {triggerEvent === "treatment_completed" ? (
+                  <>
+                    <option value="procedure_gross">Valor bruto</option>
+                    <option value="procedure_net_after_discount">
+                      Líquido após desconto
+                    </option>
+                  </>
+                ) : (
+                  <>
+                    <option value="installment_gross">Bruto recebido</option>
+                    <option value="payment_net">Líquido após taxa</option>
+                  </>
+                )}
+              </select>
+            </label>
+          </div>
+          <div>
+            <label className="block space-y-1.5 text-sm font-medium">
+              Aplicar a
+              <select
+                name="scope"
+                value={scope}
+                onChange={(event) => setScope(event.target.value)}
+                className="auth-input font-normal"
+              >
+                <option value="general">Todos os tratamentos</option>
+                <option value="treatment">Um tratamento específico</option>
+                <option
+                  value="category"
+                  disabled={calculationType === "fixed_amount"}
+                >
+                  Uma categoria
+                </option>
+                <option
+                  value="plan"
+                  disabled={calculationType === "fixed_amount"}
+                >
+                  Um convênio ou plano
+                </option>
+              </select>
+            </label>
+            {scope === "treatment" ? (
+              <label className="mt-3 block space-y-1.5 text-sm font-medium">
+                Tratamento
+                <select
+                  name="treatmentPublicId"
+                  required
+                  defaultValue={rule?.treatmentPublicId ?? ""}
+                  className="auth-input font-normal"
+                >
+                  <option value="">Selecione</option>
+                  {treatments.map((item) => (
+                    <option key={item.publicId} value={item.publicId}>
+                      {item.name}
+                      {item.active ? "" : " · arquivado"}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+            {scope === "category" ? (
+              <label className="mt-3 block space-y-1.5 text-sm font-medium">
+                Categoria
+                <input
+                  name="treatmentCategory"
+                  required
+                  minLength={2}
+                  maxLength={80}
+                  defaultValue={rule?.treatmentCategory ?? ""}
+                  list="commission-categories"
+                  className="auth-input font-normal"
+                />
+                <datalist id="commission-categories">
+                  {Array.from(
+                    new Set(
+                      treatments.map((item) => item.category).filter(Boolean),
+                    ),
+                  ).map((category) => (
+                    <option key={category} value={category ?? ""} />
+                  ))}
+                </datalist>
+              </label>
+            ) : null}
+            {scope === "plan" ? (
+              <label className="mt-3 block space-y-1.5 text-sm font-medium">
+                Convênio ou plano
+                <select
+                  name="dentalPlanPublicId"
+                  required
+                  defaultValue={rule?.dentalPlanPublicId ?? ""}
+                  className="auth-input font-normal"
+                >
+                  <option value="">Selecione</option>
+                  {plans.map((item) => (
+                    <option key={item.publicId} value={item.publicId}>
+                      {item.name}
+                      {item.active ? "" : " · arquivado"}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+            <p className="mt-2 text-xs leading-5 text-[#71807b]">
+              Regras específicas prevalecem sobre a regra geral. Tratamento tem
+              prioridade sobre categoria e plano.
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-1.5 text-sm font-medium">
+              Válida a partir de
+              <input
+                name="effectiveFrom"
+                type="date"
+                required
+                defaultValue={dateInput(rule?.effectiveFrom)}
+                className="auth-input font-normal"
+              />
+            </label>
+            <label className="space-y-1.5 text-sm font-medium">
+              Válida até{" "}
+              <span className="font-normal text-[#89928f]">(opcional)</span>
+              <input
+                name="effectiveUntil"
+                type="date"
+                min={dateInput(rule?.effectiveFrom)}
+                defaultValue={
+                  rule?.effectiveUntil ? dateInput(rule.effectiveUntil) : ""
+                }
+                className="auth-input font-normal"
+              />
+            </label>
+          </div>
+          <div className="rounded-2xl bg-[#17201d] p-5 text-white">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.12em] text-[#d8f66a]">
+              <Calculator size={16} />
+              Simulação antes de salvar
+            </div>
+            <div className="mt-4 grid gap-4 sm:grid-cols-[180px_1fr]">
+              <label className="space-y-1.5 text-xs font-medium text-white/65">
+                {triggerEvent === "installment_paid"
+                  ? "Exemplo de recebimento"
+                  : "Exemplo de procedimento"}
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={sampleAmount}
+                  onChange={(event) =>
+                    setSampleAmount(Number(event.target.value))
+                  }
+                  className="auth-input text-[#17201d]"
+                />
+              </label>
+              <div className="rounded-xl bg-white/8 p-4">
+                <p className="text-xs leading-5 text-white/65">
+                  {triggerEvent === "installment_paid"
+                    ? "Ao receber"
+                    : "Ao concluir um procedimento de"}{" "}
+                  <strong className="text-white">
+                    {currency.format(sampleAmount)}
+                  </strong>
+                  , esta regra provisionará:
+                </p>
+                <p className="mt-1 text-3xl font-semibold tracking-[-.05em] text-[#d8f66a]">
+                  {currency.format(estimated)}
+                </p>
+                <p className="mt-1 text-[11px] text-white/45">
+                  Calculado sobre o {basisLabel(basis)}
+                  {triggerEvent === "installment_paid"
+                    ? ", proporcionalmente aos itens do orçamento"
+                    : ""}
+                  .
+                </p>
+              </div>
+            </div>
+          </div>
+          {calculationType === "fixed_amount" && !treatments.length ? (
+            <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              Cadastre ao menos um tratamento antes de criar uma comissão em
+              valor fixo.
+            </p>
+          ) : null}
+          {state.status === "error" ? (
+            <p
+              className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"
+              aria-live="polite"
+            >
+              {state.message}
+            </p>
+          ) : null}
+          <footer className="flex flex-col-reverse gap-3 border-t border-[#e2e7e4] pt-5 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="h-11 rounded-xl border border-[#dce2df] px-5 text-sm font-semibold hover:bg-[#f7f9f8]"
+            >
+              Cancelar
+            </button>
+            <SubmitButton disabled={cannotSave} editing={Boolean(rule)} />
+          </footer>
+        </form>
+      </div>
+    </div>
+  );
 }
 
-export function CommissionRulesWorkspace({ clinicName, userName, canManage, professionals, treatments, plans, rules, loadError }: { clinicName: string; userName: string; canManage: boolean; professionals: Professional[]; treatments: Treatment[]; plans: Plan[]; rules: Rule[]; loadError: string | null }) {
+export function CommissionRulesWorkspace({
+  clinicName,
+  userName,
+  canManage,
+  professionals,
+  treatments,
+  plans,
+  rules,
+  loadError,
+}: {
+  clinicName: string;
+  userName: string;
+  canManage: boolean;
+  professionals: Professional[];
+  treatments: Treatment[];
+  plans: Plan[];
+  rules: Rule[];
+  loadError: string | null;
+}) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | "active" | "archived">("all");
   const [editing, setEditing] = useState<Rule | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const closeForm = useCallback(() => setFormOpen(false), []);
-  const filtered = useMemo(() => { const normalized = query.trim().toLocaleLowerCase("pt-BR"); return rules.filter((rule) => { const matchesStatus = status === "all" || (status === "active" ? rule.active : !rule.active); const searchable = [rule.professionalName, rule.treatmentName, rule.treatmentCategory, rule.dentalPlanName].filter(Boolean).join(" ").toLocaleLowerCase("pt-BR"); return matchesStatus && (!normalized || searchable.includes(normalized)); }); }, [query, rules, status]);
+  const filtered = useMemo(() => {
+    const normalized = query.trim().toLocaleLowerCase("pt-BR");
+    return rules.filter((rule) => {
+      const matchesStatus =
+        status === "all" || (status === "active" ? rule.active : !rule.active);
+      const searchable = [
+        rule.professionalName,
+        rule.treatmentName,
+        rule.treatmentCategory,
+        rule.dentalPlanName,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLocaleLowerCase("pt-BR");
+      return matchesStatus && (!normalized || searchable.includes(normalized));
+    });
+  }, [query, rules, status]);
   const activeRules = rules.filter((rule) => rule.active);
-  const coveredProfessionals = new Set(activeRules.map((rule) => rule.professionalProfileId)).size;
-  const specificRules = activeRules.filter((rule) => scopeFor(rule) !== "general").length;
-  function openNew() { setEditing(null); setFormOpen(true); }
-  function openEdit(rule: Rule) { setEditing(rule); setFormOpen(true); }
+  const coveredProfessionals = new Set(
+    activeRules.map((rule) => rule.professionalProfileId),
+  ).size;
+  const specificRules = activeRules.filter(
+    (rule) => scopeFor(rule) !== "general",
+  ).length;
+  function openNew() {
+    setEditing(null);
+    setFormOpen(true);
+  }
+  function openEdit(rule: Rule) {
+    setEditing(rule);
+    setFormOpen(true);
+  }
 
-  return <WorkspaceShell clinicName={clinicName} userName={userName}><main className="min-w-0"><header className="flex min-h-[68px] items-center gap-3 border-b border-[#dce2df] bg-white px-4 py-3 sm:px-6"><button className="rounded-lg p-2 text-slate-600 lg:hidden" aria-label="Abrir menu"><Menu size={21} /></button><div><p className="text-xs font-medium text-[#68736f]">Administração clínica</p><h1 className="text-lg font-semibold tracking-[-.02em]">Regras de comissão</h1></div><button onClick={openNew} disabled={!canManage || !professionals.length} className="ml-auto flex h-10 items-center gap-2 rounded-xl bg-[#176b55] px-3.5 text-sm font-semibold text-white hover:bg-[#0f513f] disabled:cursor-not-allowed disabled:opacity-45"><Plus size={17} /><span className="hidden sm:inline">Nova regra</span></button></header><section className="space-y-5 p-4 sm:p-6"><ClinicAdminNav active="commissions" /><div className="grid gap-3 sm:grid-cols-3"><div className="rounded-2xl border border-[#dce2df] bg-white p-4"><div className="flex items-center gap-2 text-xs font-medium text-[#68736f]"><BadgePercent size={16} />Regras ativas</div><p className="mt-2 text-2xl font-semibold tracking-[-.04em]">{activeRules.length}</p></div><div className="rounded-2xl border border-[#dce2df] bg-white p-4"><div className="flex items-center gap-2 text-xs font-medium text-[#68736f]"><UserRound size={16} />Profissionais cobertos</div><p className="mt-2 text-2xl font-semibold tracking-[-.04em]">{coveredProfessionals}</p></div><div className="rounded-2xl border border-[#dce2df] bg-white p-4"><div className="flex items-center gap-2 text-xs font-medium text-[#68736f]"><ShieldCheck size={16} />Regras específicas</div><p className="mt-2 text-2xl font-semibold tracking-[-.04em]">{specificRules}</p></div></div>{!canManage ? <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><ShieldCheck className="mt-0.5 shrink-0" size={18} /><span>Você pode consultar as regras. Alterações são restritas a proprietários e administradores.</span></div> : null}{loadError ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{loadError}</div> : null}<div className="overflow-hidden rounded-2xl border border-[#dce2df] bg-white shadow-[0_10px_35px_rgba(23,32,29,.04)]"><div className="flex flex-col gap-3 border-b border-[#e2e7e4] p-4 sm:flex-row"><label className="relative flex-1"><span className="sr-only">Buscar regra</span><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#89928f]" size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar por profissional, tratamento, categoria ou plano" className="h-10 w-full rounded-xl border border-[#dce2df] bg-[#f8faf9] pl-10 pr-4 text-sm outline-none focus:border-[#176b55] focus:bg-white focus:ring-4 focus:ring-[#176b55]/8" /></label><select aria-label="Filtrar regras por status" value={status} onChange={(event) => setStatus(event.target.value as typeof status)} className="h-10 rounded-xl border border-[#dce2df] bg-white px-3 text-sm outline-none focus:border-[#176b55]"><option value="all">Todas</option><option value="active">Ativas</option><option value="archived">Arquivadas</option></select></div>{filtered.length ? <div className="divide-y divide-[#edf0ee]">{filtered.map((rule) => <article key={rule.publicId} className="grid gap-4 p-4 hover:bg-[#fbfcfb] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-5"><div><div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold">{rule.professionalName}</h2><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.08em] ${rule.active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{rule.active ? "Ativa" : "Arquivada"}</span></div><p className="mt-2 text-sm leading-6 text-[#53615c]">Recebe <strong className="text-[#17201d]">{rule.calculationType === "percentage" ? `${rule.value}%` : currency.format(rule.value)}</strong> sobre o {basisLabel(rule.calculationBasis)} ao concluir o tratamento.</p><div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#76817d]"><span>{scopeLabel(rule)}</span><span>Desde {dateLabel(rule.effectiveFrom)}</span><span>Até {dateLabel(rule.effectiveUntil)}</span></div></div>{canManage ? <div className="flex gap-2"><button onClick={() => openEdit(rule)} className="flex h-9 items-center gap-1.5 rounded-xl border border-[#dce2df] px-3 text-xs font-semibold hover:bg-[#f5f7f6]"><Edit3 size={14} />Editar</button><form action={setCommissionRuleActive.bind(null, rule.publicId, !rule.active)}><button className="flex h-9 items-center gap-1.5 rounded-xl border border-[#dce2df] px-3 text-xs font-semibold hover:bg-[#f5f7f6]">{rule.active ? <Archive size={14} /> : <CheckCircle2 size={14} />}{rule.active ? "Arquivar" : "Reativar"}</button></form></div> : null}</article>)}</div> : <div className="grid min-h-72 place-items-center p-8 text-center"><div><span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#eef3f1] text-[#176b55]"><BadgePercent size={23} /></span><h2 className="mt-4 font-semibold">{rules.length ? "Nenhuma regra encontrada" : "Defina como cada profissional recebe"}</h2><p className="mx-auto mt-1 max-w-md text-sm leading-6 text-[#68736f]">{rules.length ? "Ajuste a busca ou o filtro." : "Crie regras gerais ou específicas. O sistema provisiona a comissão automaticamente quando o procedimento é concluído."}</p>{canManage && professionals.length && !rules.length ? <button onClick={openNew} className="mt-4 rounded-xl bg-[#176b55] px-4 py-2.5 text-sm font-semibold text-white">Criar primeira regra</button> : null}</div></div>}</div></section></main>{formOpen ? <RuleForm key={editing?.publicId ?? "new"} rule={editing} professionals={professionals} treatments={treatments} plans={plans} onClose={closeForm} /> : null}</WorkspaceShell>;
+  return (
+    <WorkspaceShell clinicName={clinicName} userName={userName}>
+      <main className="min-w-0">
+        <header className="flex min-h-[68px] items-center gap-3 border-b border-[#dce2df] bg-white px-4 py-3 sm:px-6">
+          <button
+            className="rounded-lg p-2 text-slate-600 lg:hidden"
+            aria-label="Abrir menu"
+          >
+            <Menu size={21} />
+          </button>
+          <div>
+            <p className="text-xs font-medium text-[#68736f]">
+              Administração clínica
+            </p>
+            <h1 className="text-lg font-semibold tracking-[-.02em]">
+              Regras de comissão
+            </h1>
+          </div>
+          <button
+            onClick={openNew}
+            disabled={!canManage || !professionals.length}
+            className="ml-auto flex h-10 items-center gap-2 rounded-xl bg-[#176b55] px-3.5 text-sm font-semibold text-white hover:bg-[#0f513f] disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            <Plus size={17} />
+            <span className="hidden sm:inline">Nova regra</span>
+          </button>
+        </header>
+        <section className="space-y-5 p-4 sm:p-6">
+          <ClinicAdminNav active="commissions" />
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-[#dce2df] bg-white p-4">
+              <div className="flex items-center gap-2 text-xs font-medium text-[#68736f]">
+                <BadgePercent size={16} />
+                Regras ativas
+              </div>
+              <p className="mt-2 text-2xl font-semibold tracking-[-.04em]">
+                {activeRules.length}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-[#dce2df] bg-white p-4">
+              <div className="flex items-center gap-2 text-xs font-medium text-[#68736f]">
+                <UserRound size={16} />
+                Profissionais cobertos
+              </div>
+              <p className="mt-2 text-2xl font-semibold tracking-[-.04em]">
+                {coveredProfessionals}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-[#dce2df] bg-white p-4">
+              <div className="flex items-center gap-2 text-xs font-medium text-[#68736f]">
+                <ShieldCheck size={16} />
+                Regras específicas
+              </div>
+              <p className="mt-2 text-2xl font-semibold tracking-[-.04em]">
+                {specificRules}
+              </p>
+            </div>
+          </div>
+          {!canManage ? (
+            <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              <ShieldCheck className="mt-0.5 shrink-0" size={18} />
+              <span>
+                Você pode consultar as regras. Alterações são restritas a
+                proprietários e administradores.
+              </span>
+            </div>
+          ) : null}
+          {loadError ? (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+              {loadError}
+            </div>
+          ) : null}
+          <div className="overflow-hidden rounded-2xl border border-[#dce2df] bg-white shadow-[0_10px_35px_rgba(23,32,29,.04)]">
+            <div className="flex flex-col gap-3 border-b border-[#e2e7e4] p-4 sm:flex-row">
+              <label className="relative flex-1">
+                <span className="sr-only">Buscar regra</span>
+                <Search
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[#89928f]"
+                  size={17}
+                />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Buscar por profissional, tratamento, categoria ou plano"
+                  className="h-10 w-full rounded-xl border border-[#dce2df] bg-[#f8faf9] pl-10 pr-4 text-sm outline-none focus:border-[#176b55] focus:bg-white focus:ring-4 focus:ring-[#176b55]/8"
+                />
+              </label>
+              <select
+                aria-label="Filtrar regras por status"
+                value={status}
+                onChange={(event) =>
+                  setStatus(event.target.value as typeof status)
+                }
+                className="h-10 rounded-xl border border-[#dce2df] bg-white px-3 text-sm outline-none focus:border-[#176b55]"
+              >
+                <option value="all">Todas</option>
+                <option value="active">Ativas</option>
+                <option value="archived">Arquivadas</option>
+              </select>
+            </div>
+            {filtered.length ? (
+              <div className="divide-y divide-[#edf0ee]">
+                {filtered.map((rule) => (
+                  <article
+                    key={rule.publicId}
+                    className="grid gap-4 p-4 hover:bg-[#fbfcfb] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-5"
+                  >
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="font-semibold">
+                          {rule.professionalName}
+                        </h2>
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.08em] ${rule.active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
+                        >
+                          {rule.active ? "Ativa" : "Arquivada"}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm leading-6 text-[#53615c]">
+                        Recebe{" "}
+                        <strong className="text-[#17201d]">
+                          {rule.calculationType === "percentage"
+                            ? `${rule.value}%`
+                            : currency.format(rule.value)}
+                        </strong>{" "}
+                        sobre o {basisLabel(rule.calculationBasis)}{" "}
+                        {rule.triggerEvent === "installment_paid"
+                          ? "ao receber uma parcela."
+                          : "ao concluir o tratamento."}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#76817d]">
+                        <span>{scopeLabel(rule)}</span>
+                        <span>Desde {dateLabel(rule.effectiveFrom)}</span>
+                        <span>Até {dateLabel(rule.effectiveUntil)}</span>
+                      </div>
+                    </div>
+                    {canManage ? (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => openEdit(rule)}
+                          className="flex h-9 items-center gap-1.5 rounded-xl border border-[#dce2df] px-3 text-xs font-semibold hover:bg-[#f5f7f6]"
+                        >
+                          <Edit3 size={14} />
+                          Editar
+                        </button>
+                        <form
+                          action={setCommissionRuleActive.bind(
+                            null,
+                            rule.publicId,
+                            !rule.active,
+                          )}
+                        >
+                          <button className="flex h-9 items-center gap-1.5 rounded-xl border border-[#dce2df] px-3 text-xs font-semibold hover:bg-[#f5f7f6]">
+                            {rule.active ? (
+                              <Archive size={14} />
+                            ) : (
+                              <CheckCircle2 size={14} />
+                            )}
+                            {rule.active ? "Arquivar" : "Reativar"}
+                          </button>
+                        </form>
+                      </div>
+                    ) : null}
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="grid min-h-72 place-items-center p-8 text-center">
+                <div>
+                  <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#eef3f1] text-[#176b55]">
+                    <BadgePercent size={23} />
+                  </span>
+                  <h2 className="mt-4 font-semibold">
+                    {rules.length
+                      ? "Nenhuma regra encontrada"
+                      : "Defina como cada profissional recebe"}
+                  </h2>
+                  <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-[#68736f]">
+                    {rules.length
+                      ? "Ajuste a busca ou o filtro."
+                      : "Crie regras gerais ou específicas. O sistema provisiona a comissão na conclusão do procedimento ou no recebimento da parcela."}
+                  </p>
+                  {canManage && professionals.length && !rules.length ? (
+                    <button
+                      onClick={openNew}
+                      className="mt-4 rounded-xl bg-[#176b55] px-4 py-2.5 text-sm font-semibold text-white"
+                    >
+                      Criar primeira regra
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      </main>
+      {formOpen ? (
+        <RuleForm
+          key={editing?.publicId ?? "new"}
+          rule={editing}
+          professionals={professionals}
+          treatments={treatments}
+          plans={plans}
+          onClose={closeForm}
+        />
+      ) : null}
+    </WorkspaceShell>
+  );
 }
