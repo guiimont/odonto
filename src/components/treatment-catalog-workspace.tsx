@@ -12,6 +12,7 @@ import {
   setTreatmentActive,
 } from "@/app/clinic/treatments/actions";
 import { WorkspaceShell } from "@/components/workspace-shell";
+import { ClinicAdminNav } from "@/components/clinic-admin-nav";
 
 type Treatment = {
   publicId: string;
@@ -100,6 +101,7 @@ export function TreatmentCatalogWorkspace({ clinicName, userName, canManage, tre
       <main className="min-w-0">
         <header className="flex min-h-[68px] items-center gap-3 border-b border-[#dce2df] bg-white px-4 py-3 sm:px-6"><button className="rounded-lg p-2 text-slate-600 lg:hidden" aria-label="Abrir menu"><Menu size={21} /></button><div><p className="text-xs font-medium text-[#68736f]">Administração clínica</p><h1 className="text-lg font-semibold tracking-[-.02em]">Catálogo de tratamentos</h1></div><button onClick={openNew} disabled={!canManage} className="ml-auto flex h-10 items-center gap-2 rounded-xl bg-[#176b55] px-3.5 text-sm font-semibold text-white transition hover:bg-[#0f513f] disabled:cursor-not-allowed disabled:opacity-45"><Plus size={17} /><span className="hidden sm:inline">Novo tratamento</span></button></header>
         <section className="space-y-5 p-4 sm:p-6">
+          <ClinicAdminNav active="treatments" />
           <div className="grid gap-3 sm:grid-cols-3"><div className="rounded-2xl border border-[#dce2df] bg-white p-4"><div className="flex items-center gap-2 text-xs font-medium text-[#68736f]"><Stethoscope size={16} />Tratamentos ativos</div><p className="mt-2 text-2xl font-semibold tracking-[-.04em]">{activeCount}</p></div><div className="rounded-2xl border border-[#dce2df] bg-white p-4"><div className="flex items-center gap-2 text-xs font-medium text-[#68736f]"><Tag size={16} />Categorias</div><p className="mt-2 text-2xl font-semibold tracking-[-.04em]">{categoriesCount}</p></div><div className="rounded-2xl border border-[#dce2df] bg-white p-4"><div className="flex items-center gap-2 text-xs font-medium text-[#68736f]"><Archive size={16} />Arquivados</div><p className="mt-2 text-2xl font-semibold tracking-[-.04em]">{treatments.length - activeCount}</p></div></div>
           {!canManage ? <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><ShieldCheck className="mt-0.5 shrink-0" size={18} /><span>Você pode consultar o catálogo. Alterações são restritas a proprietários e administradores da clínica.</span></div> : null}
           {loadError ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{loadError}</div> : null}
