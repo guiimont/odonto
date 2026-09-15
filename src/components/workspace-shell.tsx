@@ -13,7 +13,7 @@ const navigation = [
   { label: "Visão geral", icon: LayoutDashboard, href: "/" },
   { label: "Agenda", icon: CalendarDays, href: "/agenda" },
   { label: "Pacientes", icon: Users, href: "/patients" },
-  { label: "Clínica", icon: Stethoscope, href: "#" },
+  { label: "Clínica", icon: Stethoscope, href: "/clinic/treatments" },
   { label: "Financeiro", icon: CircleDollarSign, href: "#" },
   { label: "Relatórios", icon: FileText, href: "#" },
 ] as const;
